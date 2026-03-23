@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>App Reponedor</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; line-height: 1.6; background: #f0f2f5; }
+        .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        input[type="file"] { margin: 15px 0; }
+        .alerta { color: red; font-weight: bold; border: 2px solid red; padding: 10px; margin: 10px 0; display: none; }
+        button { background: #007bff; color: white; border: none; padding: 12px 20px; border-radius: 5px; width: 100%; font-size: 16px; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>1. Cargar Auditoría</h2>
+        <p>Sube el archivo .txt del monedero:</p>
+        <input type="file" id="fileInput" accept=".txt">
+        
+        <div id="infoMaquina" style="display:none;">
+            <hr>
+            <p><strong>Cliente:</strong> <span id="nombreCliente">Cargando...</span></p>
+            <p><strong>Matrícula:</strong> <span id="matriculaTxt"></span></p>
+            <p><strong>Efectivo en Hucha:</strong> <span id="efectivoTxt"></span>€</p>
+            <p><strong>Ventas Tarjeta:</strong> <span id="tarjetaTxt"></span>€</p>
+            <div id="avisoCambio" class="alerta">⚠️ ATENCIÓN: Nivel de cambio bajo.</div>
+        </div>
+    </div>
+
+    <div id="pasoBolsa" class="card" style="display:none;">
+        <h2>2. Precintar Bolsa</h2>
+        <p>Escanea o introduce el código del QR virgen:</p>
+        <input type="text" id="qrBolsa" placeholder="ID de la bolsa">
+        <button onclick="finalizar()">Vincular y Finalizar</button>
+    </div>
+
+    <script>
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            const reader = new FileReader();
+            reader.onload = function() {
+                const texto = reader.result;
+                interpretarEVA(texto);
+            };
+            reader.readAsText(e.target.files[0]);
+        });
+
+        function interpretarEVA(texto) {
+            const lineas = texto.split('\n');
+            
+            // 1. Matrícula (CA1)
+            const ca1 = lineas.find(l => l.startsWith('CA1*')).split('*');
+            const matricula = ca1[1];
+            
+            // 2. Efectivo (DA2) - segundo valor
+            const da2 = lineas.find(l => l.startsWith('DA2*')).split('*');
+            const efectivo = (parseFloat(da2[1]) / 100).toFixed(2);
+
+            // 3. Tarjeta (DA4)
+            const da4 = lineas.find(l => l.startsWith('DA4*')).split('*');
+            const tarjeta = (parseFloat(da4[1]) / 100).toFixed(2);
+
+            // Mostrar en pantalla
+            document.getElementById('matriculaTxt').innerText = matricula;
+            document.getElementById('efectivoTxt').innerText = efectivo;
+            document.getElementById('tarjetaTxt').innerText = tarjeta;
+            document.getElementById('infoMaquina').style.display = 'block';
+            document.getElementById('pasoBolsa').style.display = 'block';
+
+            // Lógica simple de cambio (CA11)
+            if(texto.includes('CA11*50*2*')) { // Ejemplo: si hay solo 2 monedas de 50 cts
+                document.getElementById('avisoCambio').style.display = 'block';
+            }
+        }
+
+        function finalizar() {
+            const bolsa = document.getElementById('qrBolsa').value;
+            if(!bolsa) return alert("Por favor, escanea el QR de la bolsa");
+            alert("Bolsa " + bolsa + " vinculada con éxito. Enviando a central...");
+        }
+    </script>
+</body>
+</html>
