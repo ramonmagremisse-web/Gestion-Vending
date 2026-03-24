@@ -3,87 +3,65 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestión Vending - Consell Comarcal</title>
+    <title>Vending - Consell Comarcal</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; padding: 15px; background-color: #f0f2f5; color: #333; }
+        body { font-family: 'Segoe UI', sans-serif; padding: 15px; background-color: #f0f2f5; }
         .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 15px; }
-        h1 { color: #1a73e8; font-size: 1.4rem; margin: 0 0 10px 0; }
-        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
-        th, td { border: 1px solid #eee; padding: 8px; text-align: left; }
-        th { background-color: #f8f9fa; color: #555; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid #eee; padding: 10px; text-align: left; }
+        /* Estilo para las fotos de los productos */
+        .img-prod { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; background: #eee; vertical-align: middle; margin-right: 10px; }
         .success { color: #188038; font-weight: bold; }
-        .alerta { color: #d93025; font-weight: bold; background: #fce8e6; padding: 4px; border-radius: 4px; }
-        #reader { width: 100%; border-radius: 8px; overflow: hidden; margin-top: 10px; }
+        #reader { width: 100%; border-radius: 8px; overflow: hidden; }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <h1>📲 Panel de Recaudación</h1>
-    <label>1. Cargar Auditoría (.txt):</label>
-    <input type="file" id="fileInput" accept=".txt" style="margin-top:10px; width:100%;">
+    <h1>📲 Gestión de Vending</h1>
+    <input type="file" id="fileInput" accept=".txt">
 </div>
 
 <div id="resultado" style="display:none;">
     <div class="card">
-        <h3>📊 Datos de la Máquina</h3>
+        <h3>📊 Resumen</h3>
         <p>🆔 Máquina: <span id="matricula">---</span></p>
-        <p>💰 Efectivo en Caja: <span id="recaudacion" class="success">0.00</span>€</p>
-        <p id="cambioStatus"></p>
+        <p>💰 Caja: <span id="recaudacion" class="success">0.00</span>€</p>
     </div>
 
     <div class="card">
-        <h3>📦 Consumos (Desde último cierre)</h3>
-        <div style="overflow-x: auto;">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Producto</th>
-                        <th>Und.</th>
-                        <th>Total</th>
-                    </tr>
-                </thead>
-                <tbody id="tablaVentas"></tbody>
-            </table>
-        </div>
+        <h3>📦 Productos a Reponer</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Producto</th>
+                    <th>Und.</th>
+                    <th>Total</th>
+                </tr>
+            </thead>
+            <tbody id="tablaVentas"></tbody>
+        </table>
     </div>
 
     <div class="card">
-        <h3>📷 Registro de Bolsa</h3>
+        <h3>📷 Bolsa QR</h3>
         <div id="reader"></div>
-        <p id="qr-result" style="color: #1a73e8; font-weight: bold; margin-top:10px;"></p>
+        <p id="qr-result"></p>
     </div>
 </div>
 
 <script>
-// Diccionario completo de tus 100 productos
-const nombresProd = {
-    "001": "Ristreto, Cafe Corto / Espresso", "002": "Cafe Largo", "003": "Cafe Cortado", "004": "Cafe con leche",
-    "005": "Capuchino", "006": "Mocachino", "007": "Leche Manchada", "008": "Cafe Corto (Descaf.)",
-    "009": "Cafe Largo (Descaf.)", "010": "Cafe Cortado (Descaf.)", "011": "Cafe con leche (Descaf.)",
-    "012": "Capuchino (Descaf.)", "013": "Mocachino (Descaf.)", "014": "Leche Manchada (Descaf.)",
-    "015": "Leche", "016": "Te al Limon", "017": "Capuchino Avellana", "018": "Capuchino Vainilla",
-    "019": "Irish Coffe", "020": "Chocolate", "021": "Chocolate Con Leche", "022": "Caña Chocolate",
-    "023": "Chips Ahoy 40g", "024": "Croissant Relleno 65g", "025": "Galleta Colacao 63g", "026": "Donettes 95g",
-    "027": "Emanems Cacahuete 45g", "028": "Haribo Favoritos 75g", "029": "Filipinos blancos 75g",
-    "030": "Filipinos negro 75g", "031": "Galleta Gorriaga 60g", "032": "Huesitos x2 40g", "033": "Kinder Bueno 39g",
-    "034": "Kit Kat 41,5g", "035": "Mikado 39g", "036": "Oreo Original 66g", "037": "Gofre chocolate",
-    "038": "Tokke 46g", "039": "Trident Gragea", "040": "Twix 50g", "041": "Natwins fresa/yogur",
-    "042": "Palmeritas choco", "043": "Wafer Balconi 45g", "044": "Mini Cookies Nocilla", "045": "Halls Azul",
-    "046": "MR. BROWNIE", "047": "All Bran Bizcochito", "048": "Fitness Choco 23,5g", "049": "Digestive Manzana",
-    "050": "Vitalday Yogurt 44g", "051": "Sante Crispy 40g", "052": "Manzana Desidratada", "053": "Gullon Vitalday",
-    "054": "Gublins Barbacoa", "055": "Guisante snacks queso", "056": "Maiz Frito Barbacoa", "057": "Mix Frutos Secos",
-    "058": "Patatas Onduladas 30g", "059": "Crackers Tuc 31,3g", "060": "Pipas Velarte 50g", "061": "Borges Natura 35g",
-    "062": "Natuchips barbacoa", "063": "Natuchips Tomate/Queso", "064": "Fruut Craaks Lentejas",
-    "065": "Ñams Bocaditos", "066": "Veggie Carrot/Spinach", "067": "Cracck's Cebolla/Nata", "068": "Vegee BIO 25g",
-    "069": "Pistacho 40g", "070": "Ensalada Pasta Atun", "071": "Lasaña Boloñesa", "072": "Macarrones Boloñesa",
-    "073": "Ensalada Arroz", "074": "Fideuá 250g", "075": "Albóndigas Tomate", "076": "Ternera Jardinera",
-    "077": "Ensalada Pasta Jamon", "078": "Bifrutas Mediterráneo", "079": "Bifrutas Pacífico",
-    "080": "Bifrutas Tropical", "081": "Bifrutas Ibiza", "082": "Cacaolat 200ml", "083": "Zumo Melocoton",
-    "084": "Agua Bezoya 50cl", "085": "Coca-Cola Zero", "086": "Coca-Cola 330ml", "087": "Fanta Naranja",
-    "088": "Fanta Limón", "089": "Aquarius Naranja", "090": "Aquarius Limón", "091": "Nestea 330ml",
-    "092": "Red Bull 250ml", "093": "Cerveza Estrella", "094": "Cerveza Sin Free Damm", "095": "Agua Con Gas"
+// Lista de productos con su nombre y una foto de ejemplo
+const infoProd = {
+    "001": { n: "Ristreto / Espresso", img: "https://cdn-icons-png.flaticon.com/512/3127/3127450.png" },
+    "002": { n: "Cafe Largo", img: "https://cdn-icons-png.flaticon.com/512/3127/3127450.png" },
+    "004": { n: "Cafe con leche", img: "https://cdn-icons-png.flaticon.com/512/590/590810.png" },
+    "020": { n: "Chocolate", img: "https://cdn-icons-png.flaticon.com/512/2913/2913572.png" },
+    "084": { n: "Agua Bezoya", img: "https://cdn-icons-png.flaticon.com/512/3100/3100566.png" },
+    "085": { n: "Coca-Cola Zero", img: "https://cdn-icons-png.flaticon.com/512/2405/2405479.png" },
+    "086": { n: "Coca-Cola 330ml", img: "https://cdn-icons-png.flaticon.com/512/2405/2405479.png" },
+    "def": { n: "Snack/Otros", img: "https://cdn-icons-png.flaticon.com/512/2553/2553691.png" }
 };
 
 document.getElementById('fileInput').addEventListener('change', function(e) {
@@ -92,35 +70,39 @@ document.getElementById('fileInput').addEventListener('change', function(e) {
     reader.readAsText(e.target.files[0]);
 });
 
-function procesar(contenido) {
-    const lineas = contenido.split('\n');
-    let tabla = document.querySelector('#tablaVentas');
-    tabla.innerHTML = "";
-    let totalCaja = 0;
+function procesar(texto) {
+    const lineas = texto.split('\n');
+    let tbody = document.querySelector('#tablaVentas');
+    tbody.innerHTML = "";
+    let total = 0;
 
     lineas.forEach(l => {
         const c = l.split('*');
         if (c[0] === "CA1") document.getElementById('matricula').innerText = c[1];
         
-        // Bloque LA1: Ventas actuales desde el último vaciado
+        // Usamos LA1 para ver qué se ha vendido desde la última vez
         if (c[0] === "LA1") {
             const id = c[2];
             const unidades = parseInt(c[4]);
             const precio = parseInt(c[3]) / 100;
+            
             if (unidades > 0) {
-                totalCaja += (unidades * precio);
-                tabla.innerHTML += `<tr><td>${nombresProd[id] || id}</td><td>${unidades}</td><td>${(unidades*precio).toFixed(2)}€</td></tr>`;
+                total += (unidades * precio);
+                const item = infoProd[id] || infoProd["def"];
+                tbody.innerHTML += `
+                    <tr>
+                        <td>
+                            <img src="${item.img}" class="img-prod">
+                            <b>${item.n}</b>
+                        </td>
+                        <td>${unidades}</td>
+                        <td>${(unidades*precio).toFixed(2)}€</td>
+                    </tr>`;
             }
-        }
-
-        if (c[0] === "CA3") {
-            const cambio = parseInt(c[2]) / 100;
-            document.getElementById('cambioStatus').innerHTML = cambio < 10 ? 
-                `<span class="alerta">⚠️ RELLENAR CAMBIO: ${cambio}€</span>` : `<span class="success">✅ Cambio OK: ${cambio}€</span>`;
         }
     });
 
-    document.getElementById('recaudacion').innerText = totalCaja.toFixed(2);
+    document.getElementById('recaudacion').innerText = total.toFixed(2);
     document.getElementById('resultado').style.display = "block";
     iniciarQR();
 }
@@ -128,10 +110,7 @@ function procesar(contenido) {
 function iniciarQR() {
     const html5QrCode = new Html5Qrcode("reader");
     html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 },
-        (text) => {
-            document.getElementById('qr-result').innerText = "Bolsa Escaneada: " + text;
-            html5QrCode.stop();
-        }
+        (text) => { document.getElementById('qr-result').innerText = "Bolsa: " + text; }
     ).catch(() => {});
 }
 </script>
