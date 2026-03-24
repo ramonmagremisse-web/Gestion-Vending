@@ -18,7 +18,8 @@
         .alerta-mes { background: #fff3e0; color: #e65100; border: 1px solid #ffe0b2; }
         .ok { background: #e8f5e9; color: #2e7d32; }
         
-        .success { color: #1e8e3e; font-weight: bold; }
+        .success { color: #1e8e3e; font-weight: bold; font-size: 1.1rem; }
+        .cliente-header { color: #1a73e8; font-weight: bold; font-size: 1.1rem; }
         #reader { width: 100%; border-radius: 10px; overflow: hidden; margin-top: 10px; }
         .btn-save { margin-top:15px; width:100%; padding:12px; background:#1a73e8; color:white; border:none; border-radius:8px; font-weight:bold; }
     </style>
@@ -32,8 +33,9 @@
 
 <div id="resultado" style="display:none;">
     <div class="card">
-        <p>🆔 Máquina: <span id="matricula" style="font-weight:bold">---</span></p>
-        <p>💰 Efectivo: <span id="recaudacion" class="success">0.00</span>€</p>
+        <p>🏢 Cliente: <span id="nombreCliente" class="cliente-header">---</span></p>
+        <p>💰 Efectivo en Caja: <span id="recaudacion" class="success">0.00</span>€</p>
+        <div id="cambioStatus"></div>
     </div>
 
     <div class="card">
@@ -62,6 +64,13 @@
 </div>
 
 <script>
+// MAPA DE CLIENTES (Número de serie -> Nombre Real)
+const clientesMap = {
+    "J9190400006F": "Consell Comarcal",
+    "SERIE_OTRA_MAQUINA": "Empresa Ejemplo 2"
+};
+
+// DICCIONARIO DE PRODUCTOS
 const productosNombres = {
     "001": "Ristreto/Espresso", "002": "Cafe Largo", "003": "Cafe Cortado", "004": "Cafe con leche", "005": "Capuchino", "006": "Mocachino", "007": "Leche Manchada", "008": "Espresso (Desc.)", "009": "Largo (Desc.)", "010": "Cortado (Desc.)", "011": "C. Leche (Desc.)", "012": "Capuchino (Desc.)", "013": "Mocachino (Desc.)", "014": "L. Manchada (Desc.)", "015": "Leche", "016": "Te al Limon", "017": "Capuchino Avellana", "018": "Capuchino Vainilla", "019": "Irish Coffe", "020": "Chocolate", "021": "Choco Leche", "022": "Caña Choco", "023": "Chips Ahoy 40g", "024": "Croissant 65g", "025": "Galleta Colacao", "026": "Donettes 95g", "027": "M&M Cacahuete", "028": "Haribo Favoritos", "029": "Filipinos Blancos", "030": "Filipinos Negros", "031": "Galleta Gorriaga", "032": "Huesitos x2", "033": "Kinder Bueno", "034": "Kit Kat", "035": "Mikado", "036": "Oreo 66g", "037": "Yoo-Hoo Gofre", "038": "Tokke 46g", "039": "Trident Gragea", "040": "Twix 50g", "041": "Natwins Fresa", "042": "Palmeritas Choco", "043": "Wafer Balconi", "044": "Mini Cookies Nocilla", "045": "Halls Azul", "046": "Mr. Brownie", "047": "All Bran Bizcocho", "048": "Fitness Barrita", "049": "Digestive Manzana", "050": "Vitalday Yogurt", "051": "Sante Crispy", "052": "Manzana Desid.", "053": "Gullon Vitalday", "054": "Gublins Barbacoa", "055": "Guisante Snacks", "056": "Maiz Barbacoa", "057": "Mix Frutos Secos", "058": "Patatas Onduladas", "059": "Crackers Tuc", "060": "Pipas Velarte", "061": "Borges Natura", "062": "Natuchips Barba.", "063": "Natuchips Tomate", "064": "Craaks Lentejas", "065": "Bocaditos T&O", "066": "Veggie Carrot", "067": "Cebolla y Nata", "068": "Vegee BIO", "069": "Pistacho 40g", "070": "Ens. Pasta Atun", "071": "Lasaña Boloñesa", "072": "Macarrones Boloñ.", "073": "Ens. Arroz", "074": "Fideuá 250g", "075": "Albóndigas Tomate", "076": "Ternera Jardinera", "077": "Ens. Pasta Jamon", "078": "Bifrutas Medit.", "079": "Bifrutas Pacif.", "080": "Bifrutas Tropi.", "081": "Bifrutas Ibiza", "082": "Cacaolat 200ml", "083": "Zumo Melocoton", "084": "Agua Bezoya 50cl", "085": "Coca-Cola Zero", "086": "Coca-Cola 330ml", "087": "Fanta Naranja", "088": "Fanta Limon", "089": "Aquarius Naranja", "090": "Aquarius Limon", "091": "Nestea 330ml", "092": "Red Bull 250ml", "093": "Estrella 330ml", "094": "Cerveza Sin", "095": "Agua Con Gas"
 };
@@ -77,26 +86,28 @@ function procesar(data) {
     let tbody = document.getElementById('tablaVentas');
     tbody.innerHTML = "";
     let totalEfectivo = 0;
-    
-    // Para el cálculo de fecha (más de 30 días)
     const fechaActual = new Date();
 
     lineas.forEach(linea => {
         const c = linea.split('*');
-        if (c[0] === "CA1") document.getElementById('matricula').innerText = c[1];
+        
+        // Identificar Cliente por el Número de Serie (CA1)
+        if (c[0] === "CA1") {
+            const serie = c[1];
+            document.getElementById('nombreCliente').innerText = clientesMap[serie] || "Desconocido (" + serie + ")";
+        }
 
         if (c[0] === "LA1") {
             const id = c[2];
             const unidades = parseInt(c[4]);
             const precio = parseInt(c[3]) / 100;
-            const fechaDEX = c[5]; // Formato esperado por Paytec: DDMMYY
+            const fechaDEX = c[5];
 
             if (unidades >= 0) {
                 totalEfectivo += (unidades * precio);
                 const nombre = productosNombres[id] || "ID: " + id;
                 
-                // Lógica de alerta > 30 días
-                let estadoHTML = '<span class="status-badge ok">VENTA RECIENTE</span>';
+                let estadoHTML = '<span class="status-badge ok">ACTIVO</span>';
                 
                 if (unidades === 0 && fechaDEX) {
                     const dia = parseInt(fechaDEX.substring(0,2));
@@ -106,10 +117,8 @@ function procesar(data) {
                     const diffDias = (fechaActual - fechaUltVenta) / (1000 * 60 * 60 * 24);
                     
                     if (diffDias > 30) {
-                        estadoHTML = '<span class="status-badge alerta-mes">¡ESTANCADO >30D!</span>';
+                        estadoHTML = '<span class="status-badge alerta-mes">ESTANCADO >30D</span>';
                     }
-                } else if (unidades === 0 && !fechaDEX) {
-                    estadoHTML = '<span class="status-badge alerta-mes">SIN VENTAS</span>';
                 }
 
                 tbody.innerHTML += `
@@ -120,6 +129,13 @@ function procesar(data) {
                         <td>${estadoHTML}</td>
                     </tr>`;
             }
+        }
+
+        if (c[0] === "CA3") {
+            const cambio = parseInt(c[2]) / 100;
+            document.getElementById('cambioStatus').innerHTML = cambio < 10 ? 
+                `<p class="alerta">⚠️ RELLENAR CAMBIO: ${cambio.toFixed(2)}€</p>` : 
+                `<p class="success" style="font-size:0.8rem">✅ Cambio OK (${cambio.toFixed(2)}€)</p>`;
         }
     });
 
@@ -139,7 +155,7 @@ function iniciarQR() {
 }
 
 function guardarDatos() {
-    alert("Cierre registrado. Las unidades cargadas coinciden con la reposición física.");
+    alert("Cierre finalizado para " + document.getElementById('nombreCliente').innerText);
 }
 </script>
 </body>
