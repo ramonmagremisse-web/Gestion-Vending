@@ -4,115 +4,136 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestión Vending - Consell Comarcal</title>
+    <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
-        body { font-family: sans-serif; padding: 20px; background-color: #f4f4f9; }
-        .card { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 20px; }
-        h1 { color: #2c3e50; font-size: 1.5rem; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        th { background-color: #3498db; color: white; }
-        .alerta { color: red; font-weight: bold; }
-        .resumen { font-size: 1.1rem; font-weight: bold; color: #27ae60; }
+        body { font-family: 'Segoe UI', sans-serif; padding: 15px; background-color: #f0f2f5; color: #333; }
+        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 15px; }
+        h1 { color: #1a73e8; font-size: 1.4rem; margin: 0 0 10px 0; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+        th, td { border: 1px solid #eee; padding: 8px; text-align: left; }
+        th { background-color: #f8f9fa; color: #555; }
+        .success { color: #188038; font-weight: bold; }
+        .alerta { color: #d93025; font-weight: bold; background: #fce8e6; padding: 4px; border-radius: 4px; }
+        #reader { width: 100%; border-radius: 8px; overflow: hidden; margin-top: 10px; }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <h1>📊 Cargar Auditoría Paytec</h1>
-    <input type="file" id="fileInput" accept=".txt">
+    <h1>📲 Panel de Recaudación</h1>
+    <label>1. Cargar Auditoría (.txt):</label>
+    <input type="file" id="fileInput" accept=".txt" style="margin-top:10px; width:100%;">
 </div>
 
 <div id="resultado" style="display:none;">
     <div class="card">
+        <h3>📊 Datos de la Máquina</h3>
         <p>🆔 Máquina: <span id="matricula">---</span></p>
-        <p class="resumen">💰 Total a Recaudar: <span id="recaudacion">0.00</span>€</p>
+        <p>💰 Efectivo en Caja: <span id="recaudacion" class="success">0.00</span>€</p>
         <p id="cambioStatus"></p>
     </div>
 
     <div class="card">
-        <h3>📦 Unidades Consumidas (Ventas)</h3>
-        <table>
-            <thead>
-                <tr>
-                    <th>Producto</th>
-                    <th>Unidades</th>
-                    <th>Precio</th>
-                    <th>Subtotal</th>
-                </tr>
-            </thead>
-            <tbody id="tablaVentas"></tbody>
-        </table>
+        <h3>📦 Consumos (Desde último cierre)</h3>
+        <div style="overflow-x: auto;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Producto</th>
+                        <th>Und.</th>
+                        <th>Total</th>
+                    </tr>
+                </thead>
+                <tbody id="tablaVentas"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3>📷 Registro de Bolsa</h3>
+        <div id="reader"></div>
+        <p id="qr-result" style="color: #1a73e8; font-weight: bold; margin-top:10px;"></p>
     </div>
 </div>
 
 <script>
-const productosNombres = {
-    "001": "Ristreto, Cafe Corto / Espresso", "002": "Cafe Largo", "003": "Cafe Cortado",
-    "004": "Cafe con leche", "005": "Capuchino", "006": "Mocachino", "007": "Leche Manchada",
-    "012": "Capuchino (Descafeinado)", "020": "Chocolate", "086": "Coca-Cola 330ml"
-    // He añadido los que tienen ventas en tu archivo, puedes añadir el resto aquí...
+// Diccionario completo de tus 100 productos
+const nombresProd = {
+    "001": "Ristreto, Cafe Corto / Espresso", "002": "Cafe Largo", "003": "Cafe Cortado", "004": "Cafe con leche",
+    "005": "Capuchino", "006": "Mocachino", "007": "Leche Manchada", "008": "Cafe Corto (Descaf.)",
+    "009": "Cafe Largo (Descaf.)", "010": "Cafe Cortado (Descaf.)", "011": "Cafe con leche (Descaf.)",
+    "012": "Capuchino (Descaf.)", "013": "Mocachino (Descaf.)", "014": "Leche Manchada (Descaf.)",
+    "015": "Leche", "016": "Te al Limon", "017": "Capuchino Avellana", "018": "Capuchino Vainilla",
+    "019": "Irish Coffe", "020": "Chocolate", "021": "Chocolate Con Leche", "022": "Caña Chocolate",
+    "023": "Chips Ahoy 40g", "024": "Croissant Relleno 65g", "025": "Galleta Colacao 63g", "026": "Donettes 95g",
+    "027": "Emanems Cacahuete 45g", "028": "Haribo Favoritos 75g", "029": "Filipinos blancos 75g",
+    "030": "Filipinos negro 75g", "031": "Galleta Gorriaga 60g", "032": "Huesitos x2 40g", "033": "Kinder Bueno 39g",
+    "034": "Kit Kat 41,5g", "035": "Mikado 39g", "036": "Oreo Original 66g", "037": "Gofre chocolate",
+    "038": "Tokke 46g", "039": "Trident Gragea", "040": "Twix 50g", "041": "Natwins fresa/yogur",
+    "042": "Palmeritas choco", "043": "Wafer Balconi 45g", "044": "Mini Cookies Nocilla", "045": "Halls Azul",
+    "046": "MR. BROWNIE", "047": "All Bran Bizcochito", "048": "Fitness Choco 23,5g", "049": "Digestive Manzana",
+    "050": "Vitalday Yogurt 44g", "051": "Sante Crispy 40g", "052": "Manzana Desidratada", "053": "Gullon Vitalday",
+    "054": "Gublins Barbacoa", "055": "Guisante snacks queso", "056": "Maiz Frito Barbacoa", "057": "Mix Frutos Secos",
+    "058": "Patatas Onduladas 30g", "059": "Crackers Tuc 31,3g", "060": "Pipas Velarte 50g", "061": "Borges Natura 35g",
+    "062": "Natuchips barbacoa", "063": "Natuchips Tomate/Queso", "064": "Fruut Craaks Lentejas",
+    "065": "Ñams Bocaditos", "066": "Veggie Carrot/Spinach", "067": "Cracck's Cebolla/Nata", "068": "Vegee BIO 25g",
+    "069": "Pistacho 40g", "070": "Ensalada Pasta Atun", "071": "Lasaña Boloñesa", "072": "Macarrones Boloñesa",
+    "073": "Ensalada Arroz", "074": "Fideuá 250g", "075": "Albóndigas Tomate", "076": "Ternera Jardinera",
+    "077": "Ensalada Pasta Jamon", "078": "Bifrutas Mediterráneo", "079": "Bifrutas Pacífico",
+    "080": "Bifrutas Tropical", "081": "Bifrutas Ibiza", "082": "Cacaolat 200ml", "083": "Zumo Melocoton",
+    "084": "Agua Bezoya 50cl", "085": "Coca-Cola Zero", "086": "Coca-Cola 330ml", "087": "Fanta Naranja",
+    "088": "Fanta Limón", "089": "Aquarius Naranja", "090": "Aquarius Limón", "091": "Nestea 330ml",
+    "092": "Red Bull 250ml", "093": "Cerveza Estrella", "094": "Cerveza Sin Free Damm", "095": "Agua Con Gas"
 };
 
 document.getElementById('fileInput').addEventListener('change', function(e) {
     const reader = new FileReader();
-    reader.onload = function() {
-        const lineas = reader.result.split('\n');
-        procesarAuditoria(lineas);
-    };
+    reader.onload = function() { procesar(reader.result); };
     reader.readAsText(e.target.files[0]);
 });
 
-function procesarAuditoria(lineas) {
-    let tabla = document.getElementById('tablaVentas');
+function procesar(contenido) {
+    const lineas = contenido.split('\n');
+    let tabla = document.querySelector('#tablaVentas');
     tabla.innerHTML = "";
-    let totalEfectivo = 0;
+    let totalCaja = 0;
 
-    lineas.forEach(linea => {
-        const campo = linea.split('*');
-
-        // Matrícula de la máquina
-        if (campo[0] === "CA1") {
-            document.getElementById('matricula').innerText = campo[1];
-        }
-
-        // Ventas por producto (Bloque PA)
-        if (campo[0] === "PA2") {
-            // El formato de Paytec en PA2 suele ser: PA2 * VentasEfectivo * VentasEfectivoTotal * Unidades * ValorTotal
-            const unidades = parseInt(campo[3]);
-            const valor = parseInt(campo[4]) / 100;
-            
+    lineas.forEach(l => {
+        const c = l.split('*');
+        if (c[0] === "CA1") document.getElementById('matricula').innerText = c[1];
+        
+        // Bloque LA1: Ventas actuales desde el último vaciado
+        if (c[0] === "LA1") {
+            const id = c[2];
+            const unidades = parseInt(c[4]);
+            const precio = parseInt(c[3]) / 100;
             if (unidades > 0) {
-                // Buscamos el nombre del producto en la línea anterior (PA1)
-                // Para simplificar en este ejemplo, usamos el índice correlativo si no lo tenemos en el mapa
-                const row = `<tr>
-                    <td>Producto #${tabla.rows.length + 1}</td>
-                    <td>${unidades}</td>
-                    <td>${(valor/unidades).toFixed(2)}€</td>
-                    <td>${valor.toFixed(2)}€</td>
-                </tr>`;
-                tabla.innerHTML += row;
-                totalEfectivo += valor;
+                totalCaja += (unidades * precio);
+                tabla.innerHTML += `<tr><td>${nombresProd[id] || id}</td><td>${unidades}</td><td>${(unidades*precio).toFixed(2)}€</td></tr>`;
             }
         }
 
-        // Estado del cambio (CA3)
-        if (campo[0] === "CA3") {
-            const monedasCambio = parseInt(campo[2]) / 100;
-            const status = document.getElementById('cambioStatus');
-            if (monedasCambio < 10) {
-                status.innerHTML = `<span class="alerta">⚠️ FALTA CAMBIO: Solo hay ${monedasCambio}€</span>`;
-            } else {
-                status.innerHTML = `✅ Cambio OK: ${monedasCambio}€ en tubos.`;
-            }
+        if (c[0] === "CA3") {
+            const cambio = parseInt(c[2]) / 100;
+            document.getElementById('cambioStatus').innerHTML = cambio < 10 ? 
+                `<span class="alerta">⚠️ RELLENAR CAMBIO: ${cambio}€</span>` : `<span class="success">✅ Cambio OK: ${cambio}€</span>`;
         }
     });
 
-    document.getElementById('recaudacion').innerText = totalEfectivo.toFixed(2);
+    document.getElementById('recaudacion').innerText = totalCaja.toFixed(2);
     document.getElementById('resultado').style.display = "block";
+    iniciarQR();
+}
+
+function iniciarQR() {
+    const html5QrCode = new Html5Qrcode("reader");
+    html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 },
+        (text) => {
+            document.getElementById('qr-result').innerText = "Bolsa Escaneada: " + text;
+            html5QrCode.stop();
+        }
+    ).catch(() => {});
 }
 </script>
 </body>
 </html>
-
-            
-            
