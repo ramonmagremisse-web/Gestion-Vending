@@ -1,118 +1,17 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vending - Consell Comarcal</title>
-    <script src="https://unpkg.com/html5-qrcode"></script>
-    <style>
-        body { font-family: 'Segoe UI', sans-serif; padding: 15px; background-color: #f0f2f5; }
-        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 15px; }
-        table { width: 100%; border-collapse: collapse; }
-        th, td { border: 1px solid #eee; padding: 10px; text-align: left; }
-        /* Estilo para las fotos de los productos */
-        .img-prod { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; background: #eee; vertical-align: middle; margin-right: 10px; }
-        .success { color: #188038; font-weight: bold; }
-        #reader { width: 100%; border-radius: 8px; overflow: hidden; }
-    </style>
-</head>
-<body>
-
-<div class="card">
-    <h1>📲 Gestión de Vending</h1>
-    <input type="file" id="fileInput" accept=".txt">
-</div>
-
-<div id="resultado" style="display:none;">
-    <div class="card">
-        <h3>📊 Resumen</h3>
-        <p>🆔 Máquina: <span id="matricula">---</span></p>
-        <p>💰 Caja: <span id="recaudacion" class="success">0.00</span>€</p>
-    </div>
-
-    <div class="card">
-        <h3>📦 Productos a Reponer</h3>
-        <table>
-            <thead>
-                <tr>
-                    <th>Producto</th>
-                    <th>Und.</th>
-                    <th>Total</th>
-                </tr>
-            </thead>
-            <tbody id="tablaVentas"></tbody>
-        </table>
-    </div>
-
-    <div class="card">
-        <h3>📷 Bolsa QR</h3>
-        <div id="reader"></div>
-        <p id="qr-result"></p>
-    </div>
-</div>
-
 <script>
-// Lista de productos con su nombre y una foto de ejemplo
+// Función para convertir enlace de Drive en enlace directo de imagen
+function fotoDrive(idDrive) {
+    return `https://lh3.googleusercontent.com/u/0/d/${idDrive}`;
+}
+
 const infoProd = {
-    "001": { n: "Ristreto / Espresso", img: "https://cdn-icons-png.flaticon.com/512/3127/3127450.png" },
-    "002": { n: "Cafe Largo", img: "https://cdn-icons-png.flaticon.com/512/3127/3127450.png" },
-    "004": { n: "Cafe con leche", img: "https://cdn-icons-png.flaticon.com/512/590/590810.png" },
-    "020": { n: "Chocolate", img: "https://cdn-icons-png.flaticon.com/512/2913/2913572.png" },
-    "084": { n: "Agua Bezoya", img: "https://cdn-icons-png.flaticon.com/512/3100/3100566.png" },
-    "085": { n: "Coca-Cola Zero", img: "https://cdn-icons-png.flaticon.com/512/2405/2405479.png" },
-    "086": { n: "Coca-Cola 330ml", img: "https://cdn-icons-png.flaticon.com/512/2405/2405479.png" },
-    "def": { n: "Snack/Otros", img: "https://cdn-icons-png.flaticon.com/512/2553/2553691.png" }
+    // Sustituye el ID (lo que hay después de 'file/d/...') de cada foto
+    "001": { n: "Ristreto / Espresso", img: fotoDrive("ID_DE_TU_FOTO_1") },
+    "002": { n: "Cafe Largo", img: fotoDrive("ID_DE_TU_FOTO_2") },
+    "086": { n: "Coca-Cola 330ml", img: fotoDrive("ID_DE_TU_FOTO_COCACOLA") },
+    // El resto de productos...
+    "def": { n: "Producto Vending", img: "https://cdn-icons-png.flaticon.com/512/2553/2553691.png" }
 };
 
-document.getElementById('fileInput').addEventListener('change', function(e) {
-    const reader = new FileReader();
-    reader.onload = function() { procesar(reader.result); };
-    reader.readAsText(e.target.files[0]);
-});
-
-function procesar(texto) {
-    const lineas = texto.split('\n');
-    let tbody = document.querySelector('#tablaVentas');
-    tbody.innerHTML = "";
-    let total = 0;
-
-    lineas.forEach(l => {
-        const c = l.split('*');
-        if (c[0] === "CA1") document.getElementById('matricula').innerText = c[1];
-        
-        // Usamos LA1 para ver qué se ha vendido desde la última vez
-        if (c[0] === "LA1") {
-            const id = c[2];
-            const unidades = parseInt(c[4]);
-            const precio = parseInt(c[3]) / 100;
-            
-            if (unidades > 0) {
-                total += (unidades * precio);
-                const item = infoProd[id] || infoProd["def"];
-                tbody.innerHTML += `
-                    <tr>
-                        <td>
-                            <img src="${item.img}" class="img-prod">
-                            <b>${item.n}</b>
-                        </td>
-                        <td>${unidades}</td>
-                        <td>${(unidades*precio).toFixed(2)}€</td>
-                    </tr>`;
-            }
-        }
-    });
-
-    document.getElementById('recaudacion').innerText = total.toFixed(2);
-    document.getElementById('resultado').style.display = "block";
-    iniciarQR();
-}
-
-function iniciarQR() {
-    const html5QrCode = new Html5Qrcode("reader");
-    html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 },
-        (text) => { document.getElementById('qr-result').innerText = "Bolsa: " + text; }
-    ).catch(() => {});
-}
+// ... (Resto del código de procesamiento igual que antes)
 </script>
-</body>
-</html>
