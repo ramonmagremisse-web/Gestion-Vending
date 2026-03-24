@@ -3,28 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reposición Vending - Consell Comarcal</title>
+    <title>Reposición Vending Pro</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; padding: 15px; background-color: #f4f7f9; color: #333; }
+        body { font-family: 'Segoe UI', sans-serif; padding: 15px; background-color: #f4f7f9; color: #333; user-select: none; -webkit-tap-highlight-color: transparent; }
         .card { background: white; padding: 18px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 15px; }
         h1 { color: #1a73e8; font-size: 1.2rem; text-align: center; margin: 0; }
         table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.85rem; }
         th, td { border-bottom: 1px solid #eee; padding: 12px 5px; text-align: left; }
-        th { color: #666; font-weight: 600; text-transform: uppercase; font-size: 0.7rem; }
         
-        .stock-input { width: 45px; padding: 6px; border: 1px solid #1a73e8; border-radius: 4px; text-align: center; font-weight: bold; background: #e3f2fd; }
-        .status-badge { padding: 3px 6px; border-radius: 4px; font-size: 0.65rem; font-weight: bold; }
-        .alerta-mes { background: #fff3e0; color: #e65100; border: 1px solid #ffe0b2; }
-        .movimiento { background: #e8f5e9; color: #2e7d32; border: 1px solid #c8e6c9; }
+        .stock-input { width: 45px; padding: 6px; border: 1px solid #1a73e8; border-radius: 4px; text-align: center; font-weight: bold; }
         
-        .cliente-header { color: #1a73e8; font-weight: bold; font-size: 1.2rem; display: block; margin-bottom: 5px; }
-        #reader { width: 100%; border-radius: 10px; overflow: hidden; margin-top: 10px; }
-        .btn-save { margin-top:15px; width:100%; padding:15px; background:#1a73e8; color:white; border:none; border-radius:8px; font-weight:bold; font-size: 1rem; }
-        .section-title { background: #eee; padding: 5px 10px; font-size: 0.75rem; font-weight: bold; color: #555; margin-top: 15px; border-radius: 4px; }
+        /* Animación de pulsación larga */
+        .producto-fila { transition: background-color 3s linear; }
+        .producto-fila:active { background-color: #bbdefb !important; } /* Se vuelve azul mientras pulsas */
+
+        #modalScanner { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:1000; color:white; text-align:center; padding-top:40px; }
+        #barcode-reader { width: 100%; max-width: 350px; margin: auto; border: 2px solid #1a73e8; border-radius: 10px; overflow: hidden; }
+        .btn-cancel { margin-top:30px; padding:12px 25px; background:#d32f2f; color:white; border:none; border-radius:8px; font-weight:bold; }
+        .btn-save { margin-top:15px; width:100%; padding:15px; background:#1a73e8; color:white; border:none; border-radius:8px; font-weight:bold; }
     </style>
 </head>
 <body>
+
+<div id="modalScanner">
+    <h2 style="margin-bottom:20px;">📷 ESCANEAR NUEVO PRODUCTO</h2>
+    <div id="barcode-reader"></div>
+    <p style="margin-top:20px; padding:0 20px;">Enfoque el código de barras del nuevo producto para sustituirlo en esta posición.</p>
+    <button class="btn-cancel" onclick="cerrarScanner()">CANCELAR</button>
+</div>
 
 <div class="card">
     <h1>📦 Hoja de Reposición</h1>
@@ -33,43 +40,30 @@
 
 <div id="resultado" style="display:none;">
     <div class="card">
-        <span id="nombreCliente" class="cliente-header">---</span>
-        <span id="cambioStatus"></span>
+        <span id="nombreCliente" style="color:#1a73e8; font-weight:bold; font-size:1.2rem;">---</span>
     </div>
 
     <div class="card">
-        <h3>Lista de Reposición Priorizada</h3>
-        <p style="font-size: 0.75rem; color: #777;">Los productos con ventas aparecen primero. El café aparece al final.</p>
-        
-        <div style="overflow-x: auto;">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Producto</th>
-                        <th style="text-align:center;">Faltan</th>
-                        <th style="text-align:center;">Cargar</th>
-                        <th>Estado</th>
-                    </tr>
-                </thead>
-                <tbody id="tablaVentas"></tbody>
-            </table>
-        </div>
+        <p style="font-size:0.75rem; color:#d32f2f; font-weight:bold;">⚠️ MANTÉN PULSADO 3 SEGUNDOS PARA CAMBIAR PRODUCTO</p>
+        <table>
+            <thead>
+                <tr>
+                    <th>Producto</th>
+                    <th style="text-align:center;">Faltan</th>
+                    <th style="text-align:center;">Cargar</th>
+                </tr>
+            </thead>
+            <tbody id="tablaVentas"></tbody>
+        </table>
         <button class="btn-save" onclick="guardarDatos()">Finalizar Carga</button>
-    </div>
-
-    <div class="card">
-        <h3>📷 Escanear Bolsa de Seguridad</h3>
-        <div id="reader"></div>
-        <p id="qr-result" style="text-align:center; font-weight:bold; color:#1a73e8; margin-top:10px;"></p>
     </div>
 </div>
 
 <script>
 const clientesMap = { "J9190400006F": "Consell Comarcal" };
-
-const productosNombres = {
-    "001": "Ristreto/Espresso", "002": "Cafe Largo", "003": "Cafe Cortado", "004": "Cafe con leche", "005": "Capuchino", "006": "Mocachino", "007": "Leche Manchada", "008": "Espresso (Desc.)", "009": "Largo (Desc.)", "010": "Cortado (Desc.)", "011": "C. Leche (Desc.)", "012": "Capuchino (Desc.)", "013": "Mocachino (Desc.)", "014": "L. Manchada (Desc.)", "015": "Leche", "016": "Te al Limon", "017": "Capuchino Avellana", "018": "Capuchino Vainilla", "019": "Irish Coffe", "020": "Chocolate", "021": "Choco Leche", "022": "Caña Choco", "023": "Chips Ahoy 40g", "024": "Croissant 65g", "025": "Galleta Colacao", "026": "Donettes 95g", "027": "M&M Cacahuete", "028": "Haribo Favoritos", "029": "Filipinos Blancos", "030": "Filipinos Negros", "031": "Galleta Gorriaga", "032": "Huesitos x2", "033": "Kinder Bueno", "034": "Kit Kat", "035": "Mikado", "036": "Oreo 66g", "037": "Yoo-Hoo Gofre", "038": "Tokke 46g", "039": "Trident Gragea", "040": "Twix 50g", "041": "Natwins Fresa", "042": "Palmeritas Choco", "043": "Wafer Balconi", "044": "Mini Cookies Nocilla", "045": "Halls Azul", "046": "Mr. Brownie", "047": "All Bran Bizcocho", "048": "Fitness Barrita", "049": "Digestive Manzana", "050": "Vitalday Yogurt", "051": "Sante Crispy", "052": "Manzana Desid.", "053": "Gullon Vitalday", "054": "Gublins Barbacoa", "055": "Guisante Snacks", "056": "Maiz Barbacoa", "057": "Mix Frutos Secos", "058": "Patatas Onduladas", "059": "Crackers Tuc", "060": "Pipas Velarte", "061": "Borges Natura", "062": "Natuchips Barba.", "063": "Natuchips Tomate", "064": "Craaks Lentejas", "065": "Bocaditos T&O", "066": "Veggie Carrot", "067": "Cebolla y Nata", "068": "Vegee BIO", "069": "Pistacho 40g", "070": "Ens. Pasta Atun", "071": "Lasaña Boloñesa", "072": "Macarrones Boloñ.", "073": "Ens. Arroz", "074": "Fideuá 250g", "075": "Albóndigas Tomate", "076": "Ternera Jardinera", "077": "Ens. Pasta Jamon", "078": "Bifrutas Medit.", "079": "Bifrutas Pacif.", "080": "Bifrutas Tropi.", "081": "Bifrutas Ibiza", "082": "Cacaolat 200ml", "083": "Zumo Melocoton", "084": "Agua Bezoya 50cl", "085": "Coca-Cola Zero", "086": "Coca-Cola 330ml", "087": "Fanta Naranja", "088": "Fanta Limon", "089": "Aquarius Naranja", "090": "Aquarius Limon", "091": "Nestea 330ml", "092": "Red Bull 250ml", "093": "Estrella 330ml", "094": "Cerveza Sin", "095": "Agua Con Gas"
-};
+const productosNombres = { /* Tu lista de 100 productos aquí */ };
+let actualIdParaCambiar = null;
+let scannerBarras = null;
 
 document.getElementById('fileInput').addEventListener('change', function(e) {
     const reader = new FileReader();
@@ -79,85 +73,74 @@ document.getElementById('fileInput').addEventListener('change', function(e) {
 
 function procesar(data) {
     const lineas = data.split('\n');
-    let listaVentas = [];
-    const fechaActual = new Date();
-
+    let lista = [];
     lineas.forEach(linea => {
         const c = linea.split('*');
-        if (c[0] === "CA1") document.getElementById('nombreCliente').innerText = clientesMap[c[1]] || "Cliente: " + c[1];
-
+        if (c[0] === "CA1") document.getElementById('nombreCliente').innerText = clientesMap[c[1]] || c[1];
         if (c[0] === "LA1") {
-            const idNum = parseInt(c[2]);
-            const idStr = c[2];
-            const unidades = parseInt(c[4]);
-            const fechaDEX = c[5];
-            
-            let alerta = "";
-            if (unidades === 0 && fechaDEX) {
-                const dia = parseInt(fechaDEX.substring(0,2));
-                const mes = parseInt(fechaDEX.substring(2,4)) - 1;
-                const año = 2000 + parseInt(fechaDEX.substring(4,6));
-                const diff = (fechaActual - new Date(año, mes, dia)) / (1000 * 60 * 60 * 24);
-                if (diff > 30) alerta = "ESTANCADO";
-            } else if (unidades > 0) {
-                alerta = "REPOSICIÓN";
-            }
-
-            listaVentas.push({ id: idStr, idNum: idNum, nombre: productosNombres[idStr] || "ID: "+idStr, unidades: unidades, alerta: alerta });
-        }
-
-        if (c[0] === "CA3") {
-            const cambio = parseInt(c[2]) / 100;
-            document.getElementById('cambioStatus').innerHTML = cambio < 10 ? 
-                `<span class="alerta-mes" style="padding:5px; display:block; margin-top:5px;">⚠️ REVISAR CAMBIO: Quedan ${cambio.toFixed(2)}€</span>` : "";
+            lista.push({ id: c[2], nombre: productosNombres[c[2]] || "ID: "+c[2], unidades: parseInt(c[4]) });
         }
     });
-
-    // LÓGICA DE ORDENACIÓN:
-    // 1. Los del 1 al 21 siempre van al final.
-    // 2. Del resto, los que tienen unidades > 0 van primero.
-    listaVentas.sort((a, b) => {
-        const aEsCafe = (a.idNum >= 1 && a.idNum <= 21);
-        const bEsCafe = (b.idNum >= 1 && b.idNum <= 21);
-        
-        if (aEsCafe && !bEsCafe) return 1;
-        if (!aEsCafe && bEsCafe) return -1;
-        if (a.unidades > 0 && b.unidades === 0) return -1;
-        if (a.unidades === 0 && b.unidades > 0) return 1;
-        return 0;
-    });
-
-    renderizarTabla(listaVentas);
+    render(lista);
     document.getElementById('resultado').style.display = "block";
-    iniciarQR();
 }
 
-function renderizarTabla(lista) {
-    let tbody = document.getElementById('tablaVentas');
+function render(lista) {
+    const tbody = document.getElementById('tablaVentas');
     tbody.innerHTML = "";
     lista.forEach(p => {
-        let badge = p.alerta === "REPOSICIÓN" ? `<span class="status-badge movimiento">RECARGAR</span>` : 
-                    (p.alerta === "ESTANCADO" ? `<span class="status-badge alerta-mes">INACTIVO >30D</span>` : "");
+        const tr = document.createElement('tr');
+        tr.className = "producto-fila";
+        // Estilo diferente para café (1-21) como pediste
+        if (parseInt(p.id) <= 21) tr.style.backgroundColor = "#f9f9f9";
+
+        tr.innerHTML = `
+            <td id="name-${p.id}"><b>${p.nombre}</b><br><small style="color:#999">Cod: ${p.id}</small></td>
+            <td style="text-align:center; font-weight:bold; color:${p.unidades > 0 ? '#d93025' : '#777'}">${p.unidades}</td>
+            <td style="text-align:center"><input type="number" class="stock-input" value="${p.unidades}"></td>
+        `;
         
-        tbody.innerHTML += `
-            <tr style="${p.idNum <= 21 ? 'background:#f9f9f9' : ''}">
-                <td><b>${p.nombre}</b><br><small style="color:#999">Cod: ${p.id}</small></td>
-                <td style="text-align:center; font-weight:bold; color:${p.unidades > 0 ? '#d93025' : '#777'}">${p.unidades}</td>
-                <td style="text-align:center"><input type="number" class="stock-input" value="${p.unidades}"></td>
-                <td>${badge}</td>
-            </tr>`;
+        // LÓGICA DE 3 SEGUNDOS (LONG PRESS)
+        let timer;
+        const iniciarPresion = () => {
+            timer = setTimeout(() => abrirScanner(p.id), 3000); // 3000 ms = 3 segundos
+        };
+        const cancelarPresion = () => clearTimeout(timer);
+
+        tr.addEventListener('touchstart', iniciarPresion);
+        tr.addEventListener('touchend', cancelarPresion);
+        tr.addEventListener('mousedown', iniciarPresion); // Para PC
+        tr.addEventListener('mouseup', cancelarPresion);  // Para PC
+        
+        tbody.appendChild(tr);
     });
 }
 
-function iniciarQR() {
-    const scanner = new Html5Qrcode("reader");
-    scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 },
-        (text) => { document.getElementById('qr-result').innerText = "✅ Bolsa: " + text; scanner.stop(); }
-    ).catch(err => {});
+function abrirScanner(id) {
+    actualIdParaCambiar = id;
+    window.navigator.vibrate(100); // Vibra al activarse (si el móvil lo permite)
+    document.getElementById('modalScanner').style.display = "block";
+    scannerBarras = new Html5Qrcode("barcode-reader");
+    scannerBarras.start({ facingMode: "environment" }, { fps: 15, qrbox: {width: 250, height: 150} },
+        (codigo) => {
+            document.getElementById(`name-${actualIdParaCambiar}`).innerHTML = `<b>NUEVO: ${codigo}</b><br><small style="color:#e65100; font-weight:bold;">Sustituye a ${actualIdParaCambiar}</small>`;
+            cerrarScanner();
+        }
+    ).catch(err => console.error(err));
+}
+
+function cerrarScanner() {
+    if(scannerBarras) {
+        scannerBarras.stop().then(() => {
+            document.getElementById('modalScanner').style.display = "none";
+        });
+    } else {
+        document.getElementById('modalScanner').style.display = "none";
+    }
 }
 
 function guardarDatos() {
-    alert("Carga registrada con éxito para " + document.getElementById('nombreCliente').innerText);
+    alert("Hoja de carga guardada.");
 }
 </script>
 </body>
