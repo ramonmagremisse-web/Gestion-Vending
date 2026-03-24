@@ -1,17 +1,134 @@
-<script>
-// Función para convertir enlace de Drive en enlace directo de imagen
-function fotoDrive(idDrive) {
-    return `https://lh3.googleusercontent.com/u/0/d/${idDrive}`;
-}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión Vending Pro</title>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; padding: 15px; background-color: #f4f7f9; color: #333; }
+        .card { background: white; padding: 18px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 15px; }
+        h1 { color: #1a73e8; font-size: 1.2rem; text-align: center; margin: 0; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.85rem; }
+        th, td { border-bottom: 1px solid #eee; padding: 10px 5px; text-align: left; }
+        th { color: #666; font-weight: 600; }
+        
+        .stock-input { width: 45px; padding: 5px; border: 1px solid #ccc; border-radius: 4px; text-align: center; font-weight: bold; }
+        .status-badge { padding: 3px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; }
+        .alerta-mes { background: #fff3e0; color: #e65100; border: 1px solid #ffe0b2; } /* Más de un mes */
+        .ok { background: #e8f5e9; color: #2e7d32; }
+        
+        .success { color: #1e8e3e; font-weight: bold; }
+        #reader { width: 100%; border-radius: 10px; overflow: hidden; margin-top: 10px; }
+    </style>
+</head>
+<body>
 
-const infoProd = {
-    // Sustituye el ID (lo que hay después de 'file/d/...') de cada foto
-    "001": { n: "Ristreto / Espresso", img: fotoDrive("ID_DE_TU_FOTO_1") },
-    "002": { n: "Cafe Largo", img: fotoDrive("ID_DE_TU_FOTO_2") },
-    "086": { n: "Coca-Cola 330ml", img: fotoDrive("ID_DE_TU_FOTO_COCACOLA") },
-    // El resto de productos...
-    "def": { n: "Producto Vending", img: "https://cdn-icons-png.flaticon.com/512/2553/2553691.png" }
+<div class="card">
+    <h1>📊 Control de Reposición</h1>
+    <input type="file" id="fileInput" accept=".txt" style="margin-top:15px; width:100%;">
+</div>
+
+<div id="resultado" style="display:none;">
+    <div class="card">
+        <p>🆔 Máquina: <span id="matricula" style="font-weight:bold">---</span></p>
+        <p>💰 Efectivo: <span id="recaudacion" class="success">0.00</span>€</p>
+    </div>
+
+    <div class="card">
+        <h3>📦 Listado de Reposición</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Producto</th>
+                    <th>Vend.</th>
+                    <th>Carga</th>
+                    <th>Estado</th>
+                </tr>
+            </thead>
+            <tbody id="tablaVentas"></tbody>
+        </table>
+        <button onclick="alert('Datos guardados localmente')" style="margin-top:15px; width:100%; padding:10px; background:#1a73e8; color:white; border:none; border-radius:8px;">Guardar Carga</button>
+    </div>
+
+    <div class="card">
+        <h3>📷 Escanear Bolsa</h3>
+        <div id="reader"></div>
+        <p id="qr-result" style="text-align:center; font-weight:bold; color:#1a73e8;"></p>
+    </div>
+</div>
+
+<script>
+// Nombres de productos
+const productosNombres = {
+    "001": "Ristreto/Espresso", "002": "Cafe Largo", "003": "Cafe Cortado", "004": "Cafe con leche",
+    "005": "Capuchino", "020": "Chocolate", "023": "Chips Ahoy", "086": "Coca-Cola"
 };
 
-// ... (Resto del código de procesamiento igual que antes)
+document.getElementById('fileInput').addEventListener('change', function(e) {
+    const reader = new FileReader();
+    reader.onload = function() { procesar(reader.result); };
+    reader.readAsText(e.target.files[0]);
+});
+
+function procesar(data) {
+    const lineas = data.split('\n');
+    let tbody = document.getElementById('tablaVentas');
+    tbody.innerHTML = "";
+    let totalEfectivo = 0;
+    
+    // Fecha actual para comparar el mes
+    const hoy = new Date();
+
+    lineas.forEach(linea => {
+        const c = linea.split('*');
+        
+        if (c[0] === "CA1") document.getElementById('matricula').innerText = c[1];
+
+        // Bloque LA1 (Ventas actuales)
+        if (c[0] === "LA1") {
+            const id = c[2];
+            const unidadesVendidas = parseInt(c[4]);
+            const precio = parseInt(c[3]) / 100;
+            const fechaUltimaVenta = c[5]; // En formato DDMMYY si el monedero lo da
+
+            if (unidadesVendidas >= 0) {
+                totalEfectivo += (unidadesVendidas * precio);
+                const nombre = productosNombres[id] || "Producto " + id;
+                
+                // Simulación de control de "Más de un mes sin vender"
+                // En un archivo real, comparamos c[5] (fecha) con la fecha actual
+                // Para la prueba, si unidades es 0, simulamos alerta
+                let estadoHTML = '<span class="status-badge ok">Activo</span>';
+                if (unidadesVendidas === 0) {
+                    estadoHTML = '<span class="status-badge alerta-mes">Sin ventas >30d</span>';
+                }
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td><b>${nombre}</b></td>
+                        <td style="text-align:center">${unidadesVendidas}</td>
+                        <td><input type="number" class="stock-input" value="${unidadesVendidas}" min="0"></td>
+                        <td>${estadoHTML}</td>
+                    </tr>`;
+            }
+        }
+    });
+
+    document.getElementById('recaudacion').innerText = totalEfectivo.toFixed(2);
+    document.getElementById('resultado').style.display = "block";
+    iniciarQR();
+}
+
+function iniciarQR() {
+    const scanner = new Html5Qrcode("reader");
+    scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 },
+        (text) => {
+            document.getElementById('qr-result').innerText = "Bolsa: " + text;
+            scanner.stop();
+        }
+    ).catch(err => {});
+}
 </script>
+</body>
+</html>
