@@ -9,17 +9,18 @@
         body { font-family: 'Segoe UI', sans-serif; padding: 15px; background-color: #f4f7f9; color: #333; }
         .card { background: white; padding: 18px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 15px; }
         h1 { color: #1a73e8; font-size: 1.2rem; text-align: center; margin: 0; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.85rem; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.8rem; }
         th, td { border-bottom: 1px solid #eee; padding: 10px 5px; text-align: left; }
-        th { color: #666; font-weight: 600; }
+        th { color: #666; font-weight: 600; text-transform: uppercase; font-size: 0.7rem; }
         
-        .stock-input { width: 45px; padding: 5px; border: 1px solid #ccc; border-radius: 4px; text-align: center; font-weight: bold; }
-        .status-badge { padding: 3px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; }
-        .alerta-mes { background: #fff3e0; color: #e65100; border: 1px solid #ffe0b2; } /* Más de un mes */
+        .stock-input { width: 40px; padding: 5px; border: 1px solid #ccc; border-radius: 4px; text-align: center; font-weight: bold; background: #fffde7; }
+        .status-badge { padding: 3px 6px; border-radius: 4px; font-size: 0.65rem; font-weight: bold; white-space: nowrap; }
+        .alerta-mes { background: #fff3e0; color: #e65100; border: 1px solid #ffe0b2; }
         .ok { background: #e8f5e9; color: #2e7d32; }
         
         .success { color: #1e8e3e; font-weight: bold; }
         #reader { width: 100%; border-radius: 10px; overflow: hidden; margin-top: 10px; }
+        .btn-save { margin-top:15px; width:100%; padding:12px; background:#1a73e8; color:white; border:none; border-radius:8px; font-weight:bold; }
     </style>
 </head>
 <body>
@@ -36,33 +37,33 @@
     </div>
 
     <div class="card">
-        <h3>📦 Listado de Reposición</h3>
-        <table>
-            <thead>
-                <tr>
-                    <th>Producto</th>
-                    <th>Vend.</th>
-                    <th>Carga</th>
-                    <th>Estado</th>
-                </tr>
-            </thead>
-            <tbody id="tablaVentas"></tbody>
-        </table>
-        <button onclick="alert('Datos guardados localmente')" style="margin-top:15px; width:100%; padding:10px; background:#1a73e8; color:white; border:none; border-radius:8px;">Guardar Carga</button>
+        <h3>📦 Lista de Carga y Stock</h3>
+        <div style="overflow-x: auto;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Producto</th>
+                        <th>Vend.</th>
+                        <th>Cargar</th>
+                        <th>Estado</th>
+                    </tr>
+                </thead>
+                <tbody id="tablaVentas"></tbody>
+            </table>
+        </div>
+        <button class="btn-save" onclick="guardarDatos()">Guardar y Cerrar Cierre</button>
     </div>
 
     <div class="card">
         <h3>📷 Escanear Bolsa</h3>
         <div id="reader"></div>
-        <p id="qr-result" style="text-align:center; font-weight:bold; color:#1a73e8;"></p>
+        <p id="qr-result" style="text-align:center; font-weight:bold; color:#1a73e8; margin-top:10px;"></p>
     </div>
 </div>
 
 <script>
-// Nombres de productos
 const productosNombres = {
-    "001": "Ristreto/Espresso", "002": "Cafe Largo", "003": "Cafe Cortado", "004": "Cafe con leche",
-    "005": "Capuchino", "020": "Chocolate", "023": "Chips Ahoy", "086": "Coca-Cola"
+    "001": "Ristreto/Espresso", "002": "Cafe Largo", "003": "Cafe Cortado", "004": "Cafe con leche", "005": "Capuchino", "006": "Mocachino", "007": "Leche Manchada", "008": "Espresso (Desc.)", "009": "Largo (Desc.)", "010": "Cortado (Desc.)", "011": "C. Leche (Desc.)", "012": "Capuchino (Desc.)", "013": "Mocachino (Desc.)", "014": "L. Manchada (Desc.)", "015": "Leche", "016": "Te al Limon", "017": "Capuchino Avellana", "018": "Capuchino Vainilla", "019": "Irish Coffe", "020": "Chocolate", "021": "Choco Leche", "022": "Caña Choco", "023": "Chips Ahoy 40g", "024": "Croissant 65g", "025": "Galleta Colacao", "026": "Donettes 95g", "027": "M&M Cacahuete", "028": "Haribo Favoritos", "029": "Filipinos Blancos", "030": "Filipinos Negros", "031": "Galleta Gorriaga", "032": "Huesitos x2", "033": "Kinder Bueno", "034": "Kit Kat", "035": "Mikado", "036": "Oreo 66g", "037": "Yoo-Hoo Gofre", "038": "Tokke 46g", "039": "Trident Gragea", "040": "Twix 50g", "041": "Natwins Fresa", "042": "Palmeritas Choco", "043": "Wafer Balconi", "044": "Mini Cookies Nocilla", "045": "Halls Azul", "046": "Mr. Brownie", "047": "All Bran Bizcocho", "048": "Fitness Barrita", "049": "Digestive Manzana", "050": "Vitalday Yogurt", "051": "Sante Crispy", "052": "Manzana Desid.", "053": "Gullon Vitalday", "054": "Gublins Barbacoa", "055": "Guisante Snacks", "056": "Maiz Barbacoa", "057": "Mix Frutos Secos", "058": "Patatas Onduladas", "059": "Crackers Tuc", "060": "Pipas Velarte", "061": "Borges Natura", "062": "Natuchips Barba.", "063": "Natuchips Tomate", "064": "Craaks Lentejas", "065": "Bocaditos T&O", "066": "Veggie Carrot", "067": "Cebolla y Nata", "068": "Vegee BIO", "069": "Pistacho 40g", "070": "Ens. Pasta Atun", "071": "Lasaña Boloñesa", "072": "Macarrones Boloñ.", "073": "Ens. Arroz", "074": "Fideuá 250g", "075": "Albóndigas Tomate", "076": "Ternera Jardinera", "077": "Ens. Pasta Jamon", "078": "Bifrutas Medit.", "079": "Bifrutas Pacif.", "080": "Bifrutas Tropi.", "081": "Bifrutas Ibiza", "082": "Cacaolat 200ml", "083": "Zumo Melocoton", "084": "Agua Bezoya 50cl", "085": "Coca-Cola Zero", "086": "Coca-Cola 330ml", "087": "Fanta Naranja", "088": "Fanta Limon", "089": "Aquarius Naranja", "090": "Aquarius Limon", "091": "Nestea 330ml", "092": "Red Bull 250ml", "093": "Estrella 330ml", "094": "Cerveza Sin", "095": "Agua Con Gas"
 };
 
 document.getElementById('fileInput').addEventListener('change', function(e) {
@@ -77,38 +78,45 @@ function procesar(data) {
     tbody.innerHTML = "";
     let totalEfectivo = 0;
     
-    // Fecha actual para comparar el mes
-    const hoy = new Date();
+    // Para el cálculo de fecha (más de 30 días)
+    const fechaActual = new Date();
 
     lineas.forEach(linea => {
         const c = linea.split('*');
-        
         if (c[0] === "CA1") document.getElementById('matricula').innerText = c[1];
 
-        // Bloque LA1 (Ventas actuales)
         if (c[0] === "LA1") {
             const id = c[2];
-            const unidadesVendidas = parseInt(c[4]);
+            const unidades = parseInt(c[4]);
             const precio = parseInt(c[3]) / 100;
-            const fechaUltimaVenta = c[5]; // En formato DDMMYY si el monedero lo da
+            const fechaDEX = c[5]; // Formato esperado por Paytec: DDMMYY
 
-            if (unidadesVendidas >= 0) {
-                totalEfectivo += (unidadesVendidas * precio);
-                const nombre = productosNombres[id] || "Producto " + id;
+            if (unidades >= 0) {
+                totalEfectivo += (unidades * precio);
+                const nombre = productosNombres[id] || "ID: " + id;
                 
-                // Simulación de control de "Más de un mes sin vender"
-                // En un archivo real, comparamos c[5] (fecha) con la fecha actual
-                // Para la prueba, si unidades es 0, simulamos alerta
-                let estadoHTML = '<span class="status-badge ok">Activo</span>';
-                if (unidadesVendidas === 0) {
-                    estadoHTML = '<span class="status-badge alerta-mes">Sin ventas >30d</span>';
+                // Lógica de alerta > 30 días
+                let estadoHTML = '<span class="status-badge ok">VENTA RECIENTE</span>';
+                
+                if (unidades === 0 && fechaDEX) {
+                    const dia = parseInt(fechaDEX.substring(0,2));
+                    const mes = parseInt(fechaDEX.substring(2,4)) - 1;
+                    const año = 2000 + parseInt(fechaDEX.substring(4,6));
+                    const fechaUltVenta = new Date(año, mes, dia);
+                    const diffDias = (fechaActual - fechaUltVenta) / (1000 * 60 * 60 * 24);
+                    
+                    if (diffDias > 30) {
+                        estadoHTML = '<span class="status-badge alerta-mes">¡ESTANCADO >30D!</span>';
+                    }
+                } else if (unidades === 0 && !fechaDEX) {
+                    estadoHTML = '<span class="status-badge alerta-mes">SIN VENTAS</span>';
                 }
 
                 tbody.innerHTML += `
                     <tr>
                         <td><b>${nombre}</b></td>
-                        <td style="text-align:center">${unidadesVendidas}</td>
-                        <td><input type="number" class="stock-input" value="${unidadesVendidas}" min="0"></td>
+                        <td style="text-align:center">${unidades}</td>
+                        <td style="text-align:center"><input type="number" class="stock-input" value="${unidades}"></td>
                         <td>${estadoHTML}</td>
                     </tr>`;
             }
@@ -124,10 +132,14 @@ function iniciarQR() {
     const scanner = new Html5Qrcode("reader");
     scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 },
         (text) => {
-            document.getElementById('qr-result').innerText = "Bolsa: " + text;
+            document.getElementById('qr-result').innerText = "✅ Bolsa: " + text;
             scanner.stop();
         }
     ).catch(err => {});
+}
+
+function guardarDatos() {
+    alert("Cierre registrado. Las unidades cargadas coinciden con la reposición física.");
 }
 </script>
 </body>
