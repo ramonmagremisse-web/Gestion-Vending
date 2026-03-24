@@ -3,25 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Vending Pro - Reposición Real</title>
+    <title>Vending Pro - Gestión Total</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
-        :root { --blue: #1a73e8; --red: #d93025; --green: #1e8e3e; --bg: #f4f7f9; }
+        :root { --blue: #1a73e8; --red: #d93025; --green: #1e8e3e; --bg: #f4f7f9; --dark: #202124; }
         body { font-family: 'Segoe UI', sans-serif; padding: 15px; background-color: var(--bg); color: #333; margin: 0; user-select: none; -webkit-tap-highlight-color: transparent; }
+        
         .card { background: white; padding: 18px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); margin-bottom: 15px; }
         h1 { color: var(--blue); font-size: 1.2rem; text-align: center; margin: 0; }
-        h3 { font-size: 1rem; margin-bottom: 10px; border-bottom: 2px solid var(--blue); display: inline-block; color: #444; }
+        h3 { font-size: 0.9rem; margin-bottom: 10px; border-bottom: 2px solid var(--blue); display: inline-block; color: #555; text-transform: uppercase; }
         
+        /* Informe de Carga */
         .prep-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .prep-item { background: #fff; padding: 10px; border-radius: 8px; border: 1px solid #d1e3fa; display: flex; flex-direction: column; }
-        .prep-label { font-size: 0.7rem; color: #666; text-transform: uppercase; }
+        .prep-label { font-size: 0.65rem; color: #666; text-transform: uppercase; margin-bottom: 4px; }
         .prep-val { font-size: 1.1rem; font-weight: bold; color: var(--blue); }
 
+        /* Tabla Filtrada */
         table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.85rem; }
         th { background: #f8f9fa; color: #666; font-size: 0.7rem; text-transform: uppercase; padding: 10px 5px; text-align: left; }
-        td { border-bottom: 1px solid #eee; padding: 12px 5px; }
-        .stock-input { width: 45px; padding: 8px; border: 2px solid var(--blue); border-radius: 6px; text-align: center; font-weight: bold; font-size: 1rem; background: #e3f2fd; }
+        td { border-bottom: 1px solid #eee; padding: 12px 5px; vertical-align: middle; }
         
+        .stock-input { width: 45px; padding: 8px; border: 2px solid var(--blue); border-radius: 6px; text-align: center; font-weight: bold; font-size: 1rem; background: #e3f2fd; }
         .status-badge { padding: 4px 8px; border-radius: 4px; font-size: 0.65rem; font-weight: bold; display: inline-block; }
         .alerta-mes { background: #fff3e0; color: #e65100; border: 1px solid #ffe0b2; }
         .movimiento { background: #e8f5e9; color: var(--green); border: 1px solid #c8e6c9; }
@@ -29,25 +32,27 @@
         .producto-fila { transition: background-color 3s linear; }
         .producto-fila:active { background-color: #bbdefb !important; }
 
-        /* Modal Escáner Mejorado */
-        #modalScanner { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); z-index:2000; color:white; text-align:center; padding-top:40px; }
-        #reader { width: 90%; max-width: 350px; margin: auto; border-radius: 12px; overflow: hidden; background: black; }
+        /* Escáner Full Screen */
+        #modalScanner { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:9999; color:white; text-align:center; padding-top:20px; }
+        #reader { width: 90%; max-width: 400px; margin: 20px auto; border-radius: 15px; overflow: hidden; background: #000; }
         
-        .btn-save { margin-top:10px; width:100%; padding:18px; background: var(--blue); color:white; border:none; border-radius:10px; font-weight:bold; font-size: 1.1rem; }
-        .btn-qr { margin-top:20px; width:100%; padding:15px; background: #333; color:white; border:none; border-radius:10px; font-weight:bold; font-size: 1rem; }
-        .btn-cancel { margin-top:30px; padding:12px 30px; background:#cc0000; color:white; border:none; border-radius:8px; font-weight:bold; }
+        .btn-save { margin-top:10px; width:100%; padding:18px; background: var(--blue); color:white; border:none; border-radius:12px; font-weight:bold; font-size: 1.1rem; box-shadow: 0 4px 12px rgba(26,115,232,0.3); }
+        .btn-qr { margin-top:20px; width:100%; padding:15px; background: var(--dark); color:white; border:none; border-radius:12px; font-weight:bold; font-size: 0.9rem; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .btn-cancel { margin-top:20px; padding:12px 25px; background:#444; color:white; border:none; border-radius:8px; font-weight:bold; }
+        
+        #qr-result-box { margin-top: 10px; padding: 10px; background: #e8f5e9; color: var(--green); border-radius: 8px; font-weight: bold; text-align: center; display: none; }
     </style>
 </head>
 <body>
 
 <div id="modalScanner">
-    <h2 id="scanner-title">📷 ESCANEAR</h2>
+    <h2 id="scanner-title" style="margin:10px 0;">📷 ESCANEANDO...</h2>
     <div id="reader"></div>
-    <button class="btn-cancel" onclick="cerrarScanner()">CANCELAR / CERRAR</button>
+    <button class="btn-cancel" onclick="cerrarScanner()">CANCELAR</button>
 </div>
 
 <div class="card">
-    <h1>📦 Gestión de Reposición</h1>
+    <h1>📦 Reposición Inteligente</h1>
     <input type="file" id="fileInput" accept=".txt" style="margin-top:15px; width:100%;">
 </div>
 
@@ -58,17 +63,17 @@
     </div>
 
     <div class="card">
-        <span id="nombreCliente" style="color:var(--blue); font-weight:bold; font-size:1.3rem; display:block;">---</span>
+        <span id="nombreCliente" style="color:var(--blue); font-weight:bold; font-size:1.2rem; display:block;">---</span>
     </div>
 
     <div class="card">
-        <p style="font-size:0.75rem; color:var(--red); font-weight:bold; margin-bottom:10px;">⚠️ MANTÉN PULSADO 3s PARA CAMBIAR PRODUCTO</p>
+        <p style="font-size:0.7rem; color:var(--red); font-weight:bold; margin-bottom:10px;">⚠️ MANTÉN PULSADO 3s PARA SUSTITUIR PRODUCTO</p>
         <div style="overflow-x: auto;">
             <table>
                 <thead>
                     <tr>
                         <th>Producto</th>
-                        <th style="text-align:center;">Faltan</th>
+                        <th style="text-align:center;">Ventas</th>
                         <th style="text-align:center;">Cargar</th>
                         <th>Estado</th>
                     </tr>
@@ -77,19 +82,23 @@
             </table>
         </div>
 
-        <button class="btn-qr" onclick="abrirScanner('QR_BOLSA')">📷 ESCANEAR QR BOLSA RECAUDACIÓN</button>
-        <p id="qr-result" style="text-align:center; font-weight:bold; color:var(--green); margin: 15px 0;"></p>
+        <button class="btn-qr" onclick="abrirScanner('QR_BOLSA')">
+            <span>📷</span> ESCANEAR QR BOLSA RECAUDACIÓN
+        </button>
+        <div id="qr-result-box"></div>
 
-        <button class="btn-save" onclick="guardarDatos()">FINALIZAR REPOSICIÓN</button>
+        <button class="btn-save" onclick="guardarTodo()">FINALIZAR REPOSICIÓN</button>
     </div>
 </div>
 
 <script>
 const clientesMap = { "J9190400006F": "Consell Comarcal" };
-const productosNombres = { /* ... tu lista de nombres ... */ "001": "Espresso", "023": "Chips Ahoy" };
+const productosNombres = {
+    "001": "Ristreto/Espresso", "002": "Cafe Largo", "003": "Cafe Cortado", "004": "Cafe con leche", "005": "Capuchino", "006": "Mocachino", "007": "Leche Manchada", "008": "Espresso (Desc.)", "009": "Largo (Desc.)", "010": "Cortado (Desc.)", "011": "C. Leche (Desc.)", "012": "Capuchino (Desc.)", "013": "Mocachino (Desc.)", "014": "L. Manchada (Desc.)", "015": "Leche", "016": "Te al Limon", "017": "Capuchino Avellana", "018": "Capuchino Vainilla", "019": "Irish Coffe", "020": "Chocolate", "021": "Choco Leche", "022": "Caña Choco", "023": "Chips Ahoy 40g", "024": "Croissant 65g", "025": "Galleta Colacao", "026": "Donettes 95g", "027": "M&M Cacahuete", "028": "Haribo Favoritos", "029": "Filipinos Blancos", "030": "Filipinos Negros", "031": "Galleta Gorriaga", "032": "Huesitos x2", "033": "Kinder Bueno", "034": "Kit Kat", "035": "Mikado", "036": "Oreo 66g", "084": "Agua Bezoya", "085": "Coca-Cola Zero", "086": "Coca-Cola 330ml"
+};
 
 let html5QrCode = null;
-let actualPosParaCambiar = null;
+let posActualCambio = null;
 
 document.getElementById('fileInput').addEventListener('change', function(e) {
     const reader = new FileReader();
@@ -100,115 +109,112 @@ document.getElementById('fileInput').addEventListener('change', function(e) {
 function procesar(data) {
     const lineas = data.split('\n');
     let listaVentas = [];
-    let totales = { cafe: 0, leche: 0, chocolate: 0, te: 0, descafeinado: 0, capuAutor: 0 };
-    const fechaActual = new Date();
+    let totales = { cafe: 0, leche: 0, choco: 0, te: 0, desc: 0 };
+    const hoy = new Date();
 
     lineas.forEach(linea => {
         const c = linea.split('*');
-        if (c[0] === "CA1") document.getElementById('nombreCliente').innerText = clientesMap[c[1]] || "Cliente: " + c[1];
+        if (c[0] === "CA1") document.getElementById('nombreCliente').innerText = clientesMap[c[1]] || "Cliente ID: " + c[1];
+        
         if (c[0] === "LA1") {
             const id = c[2];
-            const idNum = parseInt(id);
+            const idN = parseInt(id);
             const uds = parseInt(c[4]);
-            const fechaDEX = c[5];
+            const fDEX = c[5];
             let alerta = "";
+
             if (uds > 0) {
                 alerta = "REPOSICIÓN";
-                if (idNum >= 1 && idNum <= 7) totales.cafe += (uds * 8);
-                if (idNum >= 8 && idNum <= 14) totales.descafeinado += (uds * 1.4);
+                if (idN >= 1 && idN <= 7) totales.cafe += (uds * 8);
+                if (idN >= 8 && idN <= 14) totales.desc += (uds * 1.4);
                 if (["003","005","010","012","021"].includes(id)) totales.leche += (uds * 3);
                 if (id === "004" || id === "011") totales.leche += (uds * 4.5);
                 if (id === "015") totales.leche += (uds * 9);
-                if (["020","021"].includes(id)) totales.chocolate += (uds * 17);
+                if (["020","021"].includes(id)) totales.choco += (uds * 17);
                 if (id === "016") totales.te += (uds * 6.9);
-                if (["017","018"].includes(id)) totales.capuAutor += (uds * 17);
-            } else if (fechaDEX) {
-                const dia = parseInt(fechaDEX.substring(0,2));
-                const mes = parseInt(fechaDEX.substring(2,4)) - 1;
-                const año = 2000 + parseInt(fechaDEX.substring(4,6));
-                const diff = (fechaActual - new Date(año, mes, dia)) / (1000 * 60 * 60 * 24);
-                if (diff > 30) alerta = "ESTANCADO";
+            } else if (fDEX) {
+                const f = new Date(2000+parseInt(fDEX.substring(4,6)), parseInt(fDEX.substring(2,4))-1, parseInt(fDEX.substring(0,2)));
+                if ((hoy - f)/(1000*60*60*24) > 30) alerta = "ESTANCADO";
             }
-            listaVentas.push({ id: id, idNum: idNum, nombre: productosNombres[id] || "ID: "+id, unidades: uds, alerta: alerta });
+            // Solo añadir si la línea LA1 existe en el archivo
+            listaVentas.push({ id, idN, nombre: productosNombres[id] || "ID: "+id, uds, alerta });
         }
     });
 
     document.getElementById('informeGramajes').innerHTML = `
         <div class="prep-item"><span class="prep-label">Café Grano</span><span class="prep-val">${totales.cafe}g</span></div>
-        <div class="prep-item"><span class="prep-label">Descafeinado</span><span class="prep-val">${totales.descafeinado.toFixed(1)}g</span></div>
-        <div class="prep-item"><span class="prep-label">Leche Polvo</span><span class="prep-val">${totales.leche.toFixed(1)}g</span></div>
-        <div class="prep-item"><span class="prep-label">Chocolate</span><span class="prep-val">${totales.chocolate}g</span></div>
+        <div class="prep-item"><span class="prep-label">Leche</span><span class="prep-val">${totales.leche.toFixed(0)}g</span></div>
+        <div class="prep-item"><span class="prep-label">Chocolate</span><span class="prep-val">${totales.choco}g</span></div>
+        <div class="prep-item"><span class="prep-label">Descaf.</span><span class="prep-val">${totales.desc.toFixed(1)}g</span></div>
     `;
 
     listaVentas.sort((a, b) => {
-        const aEsCafe = (a.idNum <= 21); const bEsCafe = (b.idNum <= 21);
-        if (aEsCafe && !bEsCafe) return 1; if (!aEsCafe && bEsCafe) return -1;
-        if (a.unidades > 0 && b.unidades === 0) return -1;
-        return 0;
+        const aC = a.idN <= 21; const bC = b.idN <= 21;
+        if (aC && !bC) return 1; if (!aC && bC) return -1;
+        return b.uds - a.uds;
     });
 
-    renderizarTabla(listaVentas);
+    renderTabla(listaVentas);
     document.getElementById('resultado').style.display = "block";
 }
 
-function renderizarTabla(lista) {
+function renderTabla(lista) {
     const tbody = document.getElementById('tablaVentas');
     tbody.innerHTML = "";
     lista.forEach(p => {
         const tr = document.createElement('tr');
         tr.className = "producto-fila";
-        if (p.idNum <= 21) tr.style.backgroundColor = "#f9f9f9";
-        let badge = p.alerta === "REPOSICIÓN" ? `<span class="status-badge movimiento">RECARGAR</span>` : (p.alerta === "ESTANCADO" ? `<span class="status-badge alerta-mes">INACTIVO >30D</span>` : "");
+        if (p.idN <= 21) tr.style.backgroundColor = "#fafafa";
+        let badge = p.alerta === "REPOSICIÓN" ? `<span class="status-badge movimiento">CARGAR</span>` : (p.alerta === "ESTANCADO" ? `<span class="status-badge alerta-mes">INACTIVO</span>` : "");
+        
         tr.innerHTML = `
-            <td id="name-${p.id}"><b>${p.nombre}</b><br><small style="color:#999">Pos: ${p.id}</small></td>
-            <td style="text-align:center; font-weight:bold; color:${p.unidades > 0 ? 'var(--red)' : '#777'}">${p.unidades}</td>
-            <td style="text-align:center"><input type="number" class="stock-input" value="${p.unidades}"></td>
+            <td id="row-${p.id}"><b>${p.nombre}</b><br><small style="color:#888">Pos: ${p.id}</small></td>
+            <td style="text-align:center; font-weight:bold; color:${p.uds > 0 ? 'var(--red)' : '#888'}">${p.uds}</td>
+            <td style="text-align:center"><input type="number" class="stock-input" value="${p.uds}"></td>
             <td>${badge}</td>
         `;
+
         let timer;
-        const start = () => timer = setTimeout(() => abrirScanner('CAMBIO_PROD', p.id), 3000);
+        const start = () => timer = setTimeout(() => abrirScanner('CAMBIO', p.id), 3000);
         const end = () => clearTimeout(timer);
-        tr.addEventListener('touchstart', start); tr.addEventListener('touchend', end);
+        tr.onpointerdown = start; tr.onpointerup = end; tr.onpointerleave = end;
+
         tbody.appendChild(tr);
     });
 }
 
-function abrirScanner(tipo, id = null) {
-    actualPosParaCambiar = id;
+function abrirScanner(modo, id = null) {
+    posActualCambio = id;
     document.getElementById('modalScanner').style.display = "block";
-    document.getElementById('scanner-title').innerText = tipo === 'QR_BOLSA' ? '📷 QR BOLSA SEGURIDAD' : '📷 CAMBIO PRODUCTO';
+    document.getElementById('scanner-title').innerText = modo === 'QR_BOLSA' ? '📷 BOLSA SEGURIDAD' : '📷 NUEVO PRODUCTO';
     
-    // Si ya existe un escáner, lo matamos antes de empezar
-    if (html5QrCode) { html5QrCode.stop(); }
-
     html5QrCode = new Html5QrCode("reader");
-    html5QrCode.start(
-        { facingMode: "environment" }, 
-        { fps: 10, qrbox: { width: 250, height: 250 } },
-        (decodedText) => {
-            if (tipo === 'QR_BOLSA') {
-                document.getElementById('qr-result').innerText = "✅ VINCULADO: " + decodedText;
-            } else {
-                document.getElementById(`name-${actualPosParaCambiar}`).innerHTML = `<b>NUEVO: ${decodedText}</b><br><small style="color:orange;">Cambiado</small>`;
-            }
-            cerrarScanner();
+    html5QrCode.start({ facingMode: "environment" }, { fps: 15, qrbox: 250 }, (text) => {
+        if (modo === 'QR_BOLSA') {
+            const res = document.getElementById('qr-result-box');
+            res.style.display = "block";
+            res.innerText = "✅ Bolsa vinculada: " + text;
+        } else {
+            document.getElementById(`row-${posActualCambio}`).innerHTML = `<b>NUEVO: ${text}</b><br><small style="color:orange; font-weight:bold;">Sustitución en Pos: ${posActualCambio}</small>`;
         }
-    ).catch(err => { console.error("Error cámara:", err); });
+        cerrarScanner();
+    }).catch(err => console.error(err));
 }
 
 function cerrarScanner() {
     if (html5QrCode) {
         html5QrCode.stop().then(() => {
             document.getElementById('modalScanner').style.display = "none";
-        }).catch(() => {
-            document.getElementById('modalScanner').style.display = "none";
-        });
+            html5QrCode = null;
+        }).catch(() => document.getElementById('modalScanner').style.display = "none");
     } else {
         document.getElementById('modalScanner').style.display = "none";
     }
 }
 
-function guardarDatos() { alert("Reposición y Bolsa registradas."); }
+function guardarTodo() {
+    alert("Reposición finalizada con éxito.");
+}
 </script>
 </body>
 </html>
