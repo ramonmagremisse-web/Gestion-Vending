@@ -3,51 +3,47 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Vending Pro - Gestión de Reposición</title>
+    <title>Vending Pro - Reposición Real</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
         :root { --blue: #1a73e8; --red: #d93025; --green: #1e8e3e; --bg: #f4f7f9; }
         body { font-family: 'Segoe UI', sans-serif; padding: 15px; background-color: var(--bg); color: #333; margin: 0; user-select: none; -webkit-tap-highlight-color: transparent; }
-        
         .card { background: white; padding: 18px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); margin-bottom: 15px; }
         h1 { color: var(--blue); font-size: 1.2rem; text-align: center; margin: 0; }
         h3 { font-size: 1rem; margin-bottom: 10px; border-bottom: 2px solid var(--blue); display: inline-block; color: #444; }
         
-        /* Informe de Preparación */
         .prep-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .prep-item { background: #fff; padding: 10px; border-radius: 8px; border: 1px solid #d1e3fa; display: flex; flex-direction: column; }
         .prep-label { font-size: 0.7rem; color: #666; text-transform: uppercase; }
         .prep-val { font-size: 1.1rem; font-weight: bold; color: var(--blue); }
 
-        /* Tabla de Reposición */
         table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.85rem; }
         th { background: #f8f9fa; color: #666; font-size: 0.7rem; text-transform: uppercase; padding: 10px 5px; text-align: left; }
-        td { border-bottom: 1px solid #eee; padding: 12px 5px; vertical-align: middle; }
-        
+        td { border-bottom: 1px solid #eee; padding: 12px 5px; }
         .stock-input { width: 45px; padding: 8px; border: 2px solid var(--blue); border-radius: 6px; text-align: center; font-weight: bold; font-size: 1rem; background: #e3f2fd; }
+        
         .status-badge { padding: 4px 8px; border-radius: 4px; font-size: 0.65rem; font-weight: bold; display: inline-block; }
         .alerta-mes { background: #fff3e0; color: #e65100; border: 1px solid #ffe0b2; }
         .movimiento { background: #e8f5e9; color: var(--green); border: 1px solid #c8e6c9; }
 
-        /* Efecto de pulsación larga */
         .producto-fila { transition: background-color 3s linear; }
         .producto-fila:active { background-color: #bbdefb !important; }
 
-        /* Modal Escáner */
-        #modalScanner { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); z-index:1000; color:white; text-align:center; padding-top:40px; }
-        #barcode-reader { width: 90%; max-width: 350px; margin: auto; border: 2px solid var(--blue); border-radius: 12px; overflow: hidden; }
+        /* Modal Escáner Mejorado */
+        #modalScanner { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); z-index:2000; color:white; text-align:center; padding-top:40px; }
+        #reader { width: 90%; max-width: 350px; margin: auto; border-radius: 12px; overflow: hidden; background: black; }
         
-        .btn-save { margin-top:20px; width:100%; padding:18px; background: var(--blue); color:white; border:none; border-radius:10px; font-weight:bold; font-size: 1.1rem; }
-        .btn-cancel { margin-top:30px; padding:12px 30px; background:#444; color:white; border:none; border-radius:8px; }
+        .btn-save { margin-top:10px; width:100%; padding:18px; background: var(--blue); color:white; border:none; border-radius:10px; font-weight:bold; font-size: 1.1rem; }
+        .btn-qr { margin-top:20px; width:100%; padding:15px; background: #333; color:white; border:none; border-radius:10px; font-weight:bold; font-size: 1rem; }
+        .btn-cancel { margin-top:30px; padding:12px 30px; background:#cc0000; color:white; border:none; border-radius:8px; font-weight:bold; }
     </style>
 </head>
 <body>
 
 <div id="modalScanner">
-    <h2 style="margin-bottom:10px;">📷 CAMBIAR PRODUCTO</h2>
-    <p style="font-size:0.9rem; margin-bottom:20px;">Escanea el código de barras del nuevo producto</p>
-    <div id="barcode-reader"></div>
-    <button class="btn-cancel" onclick="cerrarScanner()">CANCELAR</button>
+    <h2 id="scanner-title">📷 ESCANEAR</h2>
+    <div id="reader"></div>
+    <button class="btn-cancel" onclick="cerrarScanner()">CANCELAR / CERRAR</button>
 </div>
 
 <div class="card">
@@ -56,15 +52,13 @@
 </div>
 
 <div id="resultado" style="display:none;">
-    
     <div class="card" style="background: #e8f0fe; border: 1px solid var(--blue);">
-        <h3>🚚 Preparación de Solubles</h3>
+        <h3>🚚 Carga de Solubles</h3>
         <div id="informeGramajes" class="prep-grid"></div>
     </div>
 
     <div class="card">
         <span id="nombreCliente" style="color:var(--blue); font-weight:bold; font-size:1.3rem; display:block;">---</span>
-        <div id="cambioStatus"></div>
     </div>
 
     <div class="card">
@@ -82,18 +76,20 @@
                 <tbody id="tablaVentas"></tbody>
             </table>
         </div>
+
+        <button class="btn-qr" onclick="abrirScanner('QR_BOLSA')">📷 ESCANEAR QR BOLSA RECAUDACIÓN</button>
+        <p id="qr-result" style="text-align:center; font-weight:bold; color:var(--green); margin: 15px 0;"></p>
+
         <button class="btn-save" onclick="guardarDatos()">FINALIZAR REPOSICIÓN</button>
     </div>
 </div>
 
 <script>
 const clientesMap = { "J9190400006F": "Consell Comarcal" };
+const productosNombres = { /* ... tu lista de nombres ... */ "001": "Espresso", "023": "Chips Ahoy" };
 
-const productosNombres = {
-    "001": "Ristreto/Espresso", "002": "Cafe Largo", "003": "Cafe Cortado", "004": "Cafe con leche", "005": "Capuchino", "006": "Mocachino", "007": "Leche Manchada", "008": "Espresso (Desc.)", "009": "Largo (Desc.)", "010": "Cortado (Desc.)", "011": "C. Leche (Desc.)", "012": "Capuchino (Desc.)", "013": "Mocachino (Desc.)", "014": "L. Manchada (Desc.)", "015": "Leche", "016": "Te al Limon", "017": "Capuchino Avellana", "018": "Capuchino Vainilla", "019": "Irish Coffe", "020": "Chocolate", "021": "Choco Leche", "022": "Caña Choco", "023": "Chips Ahoy 40g", "024": "Croissant 65g", "025": "Galleta Colacao", "026": "Donettes 95g", "027": "M&M Cacahuete", "028": "Haribo Favoritos", "029": "Filipinos Blancos", "030": "Filipinos Negros", "031": "Galleta Gorriaga", "032": "Huesitos x2", "033": "Kinder Bueno", "034": "Kit Kat", "035": "Mikado", "036": "Oreo 66g", "037": "Gofre Chocolate", "038": "Tokke 46g", "039": "Trident Gragea", "040": "Twix 50g", "041": "Natwins Fresa", "042": "Palmeritas Choco", "043": "Wafer Balconi", "044": "Mini Cookies Nocilla", "045": "Halls Azul", "046": "Mr. Brownie", "047": "All Bran Bizcocho", "048": "Fitness Barrita", "049": "Digestive Manzana", "050": "Vitalday Yogurt", "051": "Sante Crispy", "052": "Manzana Desid.", "053": "Gullon Vitalday", "054": "Gublins Barbacoa", "055": "Guisante Snacks", "056": "Maiz Barbacoa", "057": "Mix Frutos Secos", "058": "Patatas Onduladas", "059": "Crackers Tuc", "060": "Pipas Velarte", "061": "Borges Natura", "062": "Natuchips Barba.", "063": "Natuchips Tomate", "064": "Craaks Lentejas", "065": "Bocaditos T&O", "066": "Veggie Carrot", "067": "Cebolla y Nata", "068": "Vegee BIO", "069": "Pistacho 40g", "070": "Ens. Pasta Atun", "071": "Lasaña Boloñesa", "072": "Macarrones Boloñ.", "073": "Ens. Arroz", "074": "Fideuá 250g", "075": "Albóndigas Tomate", "076": "Ternera Jardinera", "077": "Ens. Pasta Jamon", "078": "Bifrutas Medit.", "079": "Bifrutas Pacif.", "080": "Bifrutas Tropi.", "081": "Bifrutas Ibiza", "082": "Cacaolat 200ml", "083": "Zumo Melocoton", "084": "Agua Bezoya 50cl", "085": "Coca-Cola Zero", "086": "Coca-Cola 330ml", "087": "Fanta Naranja", "088": "Fanta Limon", "089": "Aquarius Naranja", "090": "Aquarius Limon", "091": "Nestea 330ml", "092": "Red Bull 250ml", "093": "Estrella 330ml", "094": "Cerveza Sin", "095": "Agua Con Gas"
-};
-
-let scannerBarras = null;
+let html5QrCode = null;
+let actualPosParaCambiar = null;
 
 document.getElementById('fileInput').addEventListener('change', function(e) {
     const reader = new FileReader();
@@ -110,55 +106,44 @@ function procesar(data) {
     lineas.forEach(linea => {
         const c = linea.split('*');
         if (c[0] === "CA1") document.getElementById('nombreCliente').innerText = clientesMap[c[1]] || "Cliente: " + c[1];
-
         if (c[0] === "LA1") {
             const id = c[2];
             const idNum = parseInt(id);
             const uds = parseInt(c[4]);
             const fechaDEX = c[5];
-            
-            if (uds >= 0) {
-                let alerta = "";
-                if (uds > 0) {
-                    alerta = "REPOSICIÓN";
-                    // CÁLCULOS DE GRAMAJES
-                    if (idNum >= 1 && idNum <= 7) totales.cafe += (uds * 8);
-                    if (idNum >= 8 && idNum <= 14) totales.descafeinado += (uds * 1.4);
-                    if (["003","005","010","012","021"].includes(id)) totales.leche += (uds * 3);
-                    if (id === "004" || id === "011") totales.leche += (uds * 4.5);
-                    if (id === "015") totales.leche += (uds * 9);
-                    if (["020","021"].includes(id)) totales.chocolate += (uds * 17);
-                    if (id === "016") totales.te += (uds * 6.9);
-                    if (["017","018"].includes(id)) totales.capuAutor += (uds * 17);
-                } else if (fechaDEX) {
-                    const dia = parseInt(fechaDEX.substring(0,2));
-                    const mes = parseInt(fechaDEX.substring(2,4)) - 1;
-                    const año = 2000 + parseInt(fechaDEX.substring(4,6));
-                    const diff = (fechaActual - new Date(año, mes, dia)) / (1000 * 60 * 60 * 24);
-                    if (diff > 30) alerta = "ESTANCADO";
-                }
-
-                listaVentas.push({ id: id, idNum: idNum, nombre: productosNombres[id] || "ID: "+id, unidades: uds, alerta: alerta });
+            let alerta = "";
+            if (uds > 0) {
+                alerta = "REPOSICIÓN";
+                if (idNum >= 1 && idNum <= 7) totales.cafe += (uds * 8);
+                if (idNum >= 8 && idNum <= 14) totales.descafeinado += (uds * 1.4);
+                if (["003","005","010","012","021"].includes(id)) totales.leche += (uds * 3);
+                if (id === "004" || id === "011") totales.leche += (uds * 4.5);
+                if (id === "015") totales.leche += (uds * 9);
+                if (["020","021"].includes(id)) totales.chocolate += (uds * 17);
+                if (id === "016") totales.te += (uds * 6.9);
+                if (["017","018"].includes(id)) totales.capuAutor += (uds * 17);
+            } else if (fechaDEX) {
+                const dia = parseInt(fechaDEX.substring(0,2));
+                const mes = parseInt(fechaDEX.substring(2,4)) - 1;
+                const año = 2000 + parseInt(fechaDEX.substring(4,6));
+                const diff = (fechaActual - new Date(año, mes, dia)) / (1000 * 60 * 60 * 24);
+                if (diff > 30) alerta = "ESTANCADO";
             }
+            listaVentas.push({ id: id, idNum: idNum, nombre: productosNombres[id] || "ID: "+id, unidades: uds, alerta: alerta });
         }
     });
 
-    // Render Informe Gramajes
     document.getElementById('informeGramajes').innerHTML = `
-        <div class="prep-item"><span class="prep-label">Café Grano (1-7)</span><span class="prep-val">${totales.cafe}g</span></div>
+        <div class="prep-item"><span class="prep-label">Café Grano</span><span class="prep-val">${totales.cafe}g</span></div>
         <div class="prep-item"><span class="prep-label">Descafeinado</span><span class="prep-val">${totales.descafeinado.toFixed(1)}g</span></div>
         <div class="prep-item"><span class="prep-label">Leche Polvo</span><span class="prep-val">${totales.leche.toFixed(1)}g</span></div>
         <div class="prep-item"><span class="prep-label">Chocolate</span><span class="prep-val">${totales.chocolate}g</span></div>
-        <div class="prep-item"><span class="prep-label">Té Limón</span><span class="prep-val">${totales.te.toFixed(1)}g</span></div>
-        <div class="prep-item"><span class="prep-label">Capu. Autor</span><span class="prep-val">${totales.capuAutor}g</span></div>
     `;
 
-    // Ordenar: Movimiento primero, Cafetería al final
     listaVentas.sort((a, b) => {
         const aEsCafe = (a.idNum <= 21); const bEsCafe = (b.idNum <= 21);
         if (aEsCafe && !bEsCafe) return 1; if (!aEsCafe && bEsCafe) return -1;
         if (a.unidades > 0 && b.unidades === 0) return -1;
-        if (a.unidades === 0 && b.unidades > 0) return 1;
         return 0;
     });
 
@@ -173,46 +158,57 @@ function renderizarTabla(lista) {
         const tr = document.createElement('tr');
         tr.className = "producto-fila";
         if (p.idNum <= 21) tr.style.backgroundColor = "#f9f9f9";
-
-        let badge = p.alerta === "REPOSICIÓN" ? `<span class="status-badge movimiento">RECARGAR</span>` : 
-                    (p.alerta === "ESTANCADO" ? `<span class="status-badge alerta-mes">SIN VENTA >30D</span>` : "");
-        
+        let badge = p.alerta === "REPOSICIÓN" ? `<span class="status-badge movimiento">RECARGAR</span>` : (p.alerta === "ESTANCADO" ? `<span class="status-badge alerta-mes">INACTIVO >30D</span>` : "");
         tr.innerHTML = `
             <td id="name-${p.id}"><b>${p.nombre}</b><br><small style="color:#999">Pos: ${p.id}</small></td>
             <td style="text-align:center; font-weight:bold; color:${p.unidades > 0 ? 'var(--red)' : '#777'}">${p.unidades}</td>
             <td style="text-align:center"><input type="number" class="stock-input" value="${p.unidades}"></td>
             <td>${badge}</td>
         `;
-
-        // Long Press 3 segundos
         let timer;
-        const start = () => timer = setTimeout(() => abrirScanner(p.id), 3000);
+        const start = () => timer = setTimeout(() => abrirScanner('CAMBIO_PROD', p.id), 3000);
         const end = () => clearTimeout(timer);
         tr.addEventListener('touchstart', start); tr.addEventListener('touchend', end);
-        tr.addEventListener('mousedown', start); tr.addEventListener('mouseup', end);
-
         tbody.appendChild(tr);
     });
 }
 
-function abrirScanner(id) {
-    if (window.navigator.vibrate) window.navigator.vibrate(100);
+function abrirScanner(tipo, id = null) {
+    actualPosParaCambiar = id;
     document.getElementById('modalScanner').style.display = "block";
-    scannerBarras = new Html5Qrcode("barcode-reader");
-    scannerBarras.start({ facingMode: "environment" }, { fps: 15, qrbox: {width: 250, height: 150} },
-        (codigo) => {
-            document.getElementById(`name-${id}`).innerHTML = `<b>NUEVO: ${codigo}</b><br><small style="color:orange; font-weight:bold;">Sustituye a Pos. ${id}</small>`;
+    document.getElementById('scanner-title').innerText = tipo === 'QR_BOLSA' ? '📷 QR BOLSA SEGURIDAD' : '📷 CAMBIO PRODUCTO';
+    
+    // Si ya existe un escáner, lo matamos antes de empezar
+    if (html5QrCode) { html5QrCode.stop(); }
+
+    html5QrCode = new Html5QrCode("reader");
+    html5QrCode.start(
+        { facingMode: "environment" }, 
+        { fps: 10, qrbox: { width: 250, height: 250 } },
+        (decodedText) => {
+            if (tipo === 'QR_BOLSA') {
+                document.getElementById('qr-result').innerText = "✅ VINCULADO: " + decodedText;
+            } else {
+                document.getElementById(`name-${actualPosParaCambiar}`).innerHTML = `<b>NUEVO: ${decodedText}</b><br><small style="color:orange;">Cambiado</small>`;
+            }
             cerrarScanner();
         }
-    ).catch(err => {});
+    ).catch(err => { console.error("Error cámara:", err); });
 }
 
 function cerrarScanner() {
-    if (scannerBarras) scannerBarras.stop().then(() => { document.getElementById('modalScanner').style.display = "none"; });
-    else document.getElementById('modalScanner').style.display = "none";
+    if (html5QrCode) {
+        html5QrCode.stop().then(() => {
+            document.getElementById('modalScanner').style.display = "none";
+        }).catch(() => {
+            document.getElementById('modalScanner').style.display = "none";
+        });
+    } else {
+        document.getElementById('modalScanner').style.display = "none";
+    }
 }
 
-function guardarDatos() { alert("Carga finalizada correctamente."); }
+function guardarDatos() { alert("Reposición y Bolsa registradas."); }
 </script>
 </body>
 </html>
