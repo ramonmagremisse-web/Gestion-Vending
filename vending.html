@@ -3,138 +3,192 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Vending Ops">
-    <title>Vending Ops</title>
-
+    <title>Vending Ops Pro</title>
+    <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
-        :root { --primary: #007aff; --bg: #f2f2f7; --card: #ffffff; }
-        body { font-family: -apple-system, system-ui, sans-serif; background: var(--bg); margin: 0; padding: 20px; color: #1c1c1e; }
+        :root { --primary: #007aff; --bg: #f2f2f7; --card: #ffffff; --red: #ff3b30; --green: #34c759; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 15px; color: #1c1c1e; }
         
-        /* Pantalla de Login */
-        .login-container { position: fixed; inset: 0; background: #ffffff; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; }
-        .logo { font-size: 4rem; margin-bottom: 20px; }
-        .pin-box { width: 80%; max-width: 300px; padding: 15px; font-size: 2rem; text-align: center; border: 2px solid #e5e5ea; border-radius: 14px; background: #f2f2f7; -webkit-text-security: disc; margin-bottom: 20px; }
-        
-        /* Estilo Botón App */
-        .btn { width: 85%; max-width: 320px; padding: 16px; border-radius: 14px; border: none; font-size: 1rem; font-weight: 600; cursor: pointer; transition: transform 0.1s; }
-        .btn-primary { background: var(--primary); color: white; }
-        .btn:active { transform: scale(0.96); }
+        /* Login */
+        .login-screen { position: fixed; inset: 0; background: white; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; }
+        .pin-box { width: 70%; padding: 15px; font-size: 2rem; text-align: center; border: 2px solid #e5e5ea; border-radius: 15px; background: #f2f2f7; -webkit-text-security: disc; margin: 20px 0; }
 
-        /* Interfaz Principal */
-        .card { background: var(--card); border-radius: 16px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-        .header { font-size: 1.4rem; font-weight: 700; margin-bottom: 10px; color: var(--primary); }
-        .status-dot { width: 8px; height: 8px; background: #34c759; border-radius: 50%; display: inline-block; margin-right: 5px; }
+        /* Cards y Estilos */
+        .card { background: var(--card); border-radius: 16px; padding: 15px; margin-bottom: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        .header { font-size: 1.1rem; font-weight: 700; color: var(--primary); margin-bottom: 10px; }
         
-        /* Resultados Gramajes */
-        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 15px; }
-        .stat-card { background: #f8f9fa; padding: 15px; border-radius: 12px; border: 1px solid #efeff4; text-align: center; }
-        .stat-card b { display: block; font-size: 1.3rem; margin-bottom: 2px; }
-        .stat-card span { font-size: 0.75rem; color: #8e8e93; text-transform: uppercase; letter-spacing: 0.5px; }
+        /* Grid Gramos */
+        .grid-g { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .box-g { background: #f8f9fa; padding: 10px; border-radius: 12px; border: 1px solid #e5e5ea; text-align: center; }
+        .box-g b { display: block; font-size: 1.2rem; color: var(--primary); }
+        .box-g span { font-size: 0.7rem; color: #8e8e93; text-transform: uppercase; }
 
-        input[type="number"] { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ddd; font-size: 1.2rem; text-align: center; margin-top: 10px; }
+        /* Tabla Productos */
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.85rem; }
+        th { text-align: left; color: #8e8e93; font-size: 0.7rem; padding-bottom: 8px; border-bottom: 1px solid #eee; }
+        td { padding: 10px 0; border-bottom: 1px solid #f2f2f7; }
+        .qty { font-weight: bold; color: var(--red); text-align: center; }
+        .stock-input { width: 45px; padding: 5px; border: 1px solid var(--primary); border-radius: 6px; text-align: center; font-weight: bold; }
+
+        /* Botones */
+        .btn { width: 100%; padding: 16px; border-radius: 14px; border: none; font-size: 1rem; font-weight: 600; cursor: pointer; margin-top: 10px; }
+        .btn-blue { background: var(--primary); color: white; }
+        .btn-black { background: #1c1c1e; color: white; }
+        .btn-green { background: var(--green); color: white; }
+
+        /* Scanner */
+        #modalScanner { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:black; z-index:10000; color:white; }
     </style>
 </head>
 <body>
 
-<div id="login" class="login-container">
-    <div class="logo">📦</div>
-    <h2 style="margin-bottom: 5px;">Vending Ops</h2>
-    <p style="color: #8e8e93; margin-bottom: 30px;">Introduce el PIN de acceso</p>
+<div id="login" class="login-screen">
+    <div style="font-size: 4rem;">🔐</div>
+    <h2>Acceso Vending</h2>
     <input type="number" id="pin" class="pin-box" inputmode="numeric" placeholder="••••">
-    <button class="btn btn-primary" onclick="access()">ENTRAR</button>
-    <p id="err" style="color: #ff3b30; margin-top: 20px; display: none; font-weight: 600;">PIN Incorrecto</p>
+    <button class="btn btn-blue" onclick="access()" style="width: 80%;">ENTRAR</button>
 </div>
 
-<div id="app" style="display: none;">
-    <div style="font-size: 0.8rem; margin-bottom: 15px; color: #8e8e93;">
-        <span class="status-dot"></span> SISTEMA CONECTADO
-    </div>
-
+<div id="app" style="display:none;">
     <div class="card">
-        <div class="header">Nueva Reposición</div>
-        <p style="font-size: 0.9rem; color: #666;">Sube el archivo DEX para calcular gramos</p>
-        <input type="file" id="dexFile" accept=".txt" style="margin-top: 10px;">
+        <div class="header">📦 Nueva Reposición</div>
+        <input type="file" id="dexFile" accept=".txt" style="width:100%;">
     </div>
 
-    <div id="res" style="display: none;">
-        <div class="card">
-            <div id="cliName" style="font-weight: 700; font-size: 1.1rem; margin-bottom: 15px;">📍 Cliente</div>
-            <div class="stats-grid">
-                <div class="stat-card"><b id="gCafe">0g</b><span>Café</span></div>
-                <div class="stat-card"><b id="gLeche">0g</b><span>Leche</span></div>
-                <div class="stat-card"><b id="gChoco">0g</b><span>Choco</span></div>
-                <div class="stat-card"><b id="gDesc">0g</b><span>Descaf</span></div>
-            </div>
+    <div id="results" style="display:none;">
+        <div class="card" style="border-left: 5px solid var(--primary);">
+            <div id="cliName" style="font-weight: 800; font-size: 1.2rem;">📍 Cliente</div>
+            <div class="grid-g" id="gramosResult" style="margin-top:15px;"></div>
         </div>
 
         <div class="card">
-            <div class="header">Cierre de Caja</div>
-            <input type="number" id="recauda" placeholder="0.00 €" inputmode="decimal">
-            <button class="btn btn-primary" style="width: 100%; margin-top: 15px;" onclick="save()">GUARDAR RECAUDACIÓN</button>
+            <div class="header">📊 Detalle de Carga</div>
+            <table>
+                <thead>
+                    <tr><th>Producto</th><th style="text-align:center;">Vendido</th><th style="text-align:center;">Cargar</th></tr>
+                </thead>
+                <tbody id="tablaBody"></tbody>
+            </table>
+        </div>
+
+        <div class="card">
+            <div class="header">💰 Recaudación</div>
+            <button class="btn btn-black" onclick="abrirScanner()">📷 ESCANEAR QR BOLSA</button>
+            <div id="qr-info" style="text-align:center; margin: 10px 0; font-weight:bold; color:var(--green);"></div>
+            <input type="number" id="cash" placeholder="Efectivo real €" inputmode="decimal" style="width:100%; padding:15px; border-radius:12px; border:1px solid #ddd; font-size:1.5rem; text-align:center; box-sizing:border-box;">
+            <button class="btn btn-green" onclick="save()">💾 FINALIZAR Y GUARDAR</button>
         </div>
     </div>
+</div>
+
+<div id="modalScanner">
+    <div id="reader" style="width:100%;"></div>
+    <button class="btn" onclick="cerrarScanner()" style="background:red; color:white; width:90%; margin: 5%;">CERRAR CÁMARA</button>
 </div>
 
 <script>
-    const URL_SHEET = "https://script.google.com/macros/s/AKfycbyuBi1eepFl3mT-0Qr8qnZc_tpSlMC_PJRTAylV3JNNuHRq7jWQPumvUGUYkcGTevaI/exec";
     let DB = null;
+    let totalesGlobal = {};
+    let qrBolsa = "No escaneada";
+    let html5QrCode = null;
 
     async function access() {
-        const pin = document.getElementById('pin').value;
-        if(pin !== "3320") { document.getElementById('err').style.display = 'block'; return; }
-        
+        const p = document.getElementById('pin').value;
+        if(p !== "3320") return alert("PIN Incorrecto");
         document.getElementById('pin').disabled = true;
-        try {
-            const r = await fetch(URL_SHEET);
-            DB = await r.json();
+        
+        google.script.run.withSuccessHandler(data => {
+            DB = data;
             document.getElementById('login').style.display = 'none';
             document.getElementById('app').style.display = 'block';
-        } catch(e) { alert("Error de conexión con Google Sheets"); }
+        }).getData();
     }
 
     document.getElementById('dexFile').onchange = function(e) {
         const reader = new FileReader();
         reader.onload = function() {
             const lines = reader.result.split('\n');
-            let t = {c:0, l:0, ch:0, d:0};
+            let t = {cafe:0, leche:0, choco:0, descaf:0};
+            let tableHtml = "";
+
             lines.forEach(line => {
                 const f = line.split('*');
-                if(f[0]==="CA1") document.getElementById('cliName').innerText = "📍 " + (DB.clientes[f[1].trim()] || f[1]);
-                if(f[0]==="LA1") {
+                if(f[0] === "CA1") document.getElementById('cliName').innerText = "📍 " + (DB.clientes[f[1].trim()] || f[1]);
+                if(f[0] === "LA1") {
                     const id = f[2].trim().padStart(3,'0');
-                    const u = parseInt(f[4]) || 0;
-                    const p = DB.productos[id];
-                    if(u > 0 && p && DB.gramajes[p]) {
-                        t.c += u * DB.gramajes[p].cafe; t.l += u * DB.gramajes[p].leche;
-                        t.ch += u * DB.gramajes[p].choco; t.d += u * DB.gramajes[p].descaf;
+                    const uds = parseInt(f[4]) || 0;
+                    const nom = DB.productos[id] || "Producto " + id;
+                    
+                    // Gramajes (Usando la lógica del Excel)
+                    if(uds > 0 && DB.gramajes[nom]) {
+                        const g = DB.gramajes[nom];
+                        t.cafe += uds * (g.cafe || 0);
+                        t.leche += uds * (g.leche || 0);
+                        t.choco += uds * (g.choco || 0);
+                        t.descaf += uds * (g.descaf || 0);
+                    }
+
+                    // Tabla
+                    if(uds > 0 || parseInt(id) > 21) { // Mostrar si hay venta o es espirales
+                        const esCaf = parseInt(id) <= 21;
+                        tableHtml += `<tr>
+                            <td><b>${nom}</b><br><small>${id}</small></td>
+                            <td class="qty">${uds}</td>
+                            <td style="text-align:center">${esCaf ? '-' : `<input type="number" class="stock-input" value="${uds}">`}</td>
+                        </tr>`;
                     }
                 }
             });
-            document.getElementById('gCafe').innerText = Math.round(t.c)+"g";
-            document.getElementById('gLeche').innerText = Math.round(t.l)+"g";
-            document.getElementById('gChoco').innerText = Math.round(t.ch)+"g";
-            document.getElementById('gDesc').innerText = t.d.toFixed(1)+"g";
-            document.getElementById('res').style.display = 'block';
-            window.lastData = t;
+
+            document.getElementById('gramosResult').innerHTML = `
+                <div class="box-g"><b>${Math.round(t.cafe)}g</b><span>Café</span></div>
+                <div class="box-g"><b>${Math.round(t.leche)}g</b><span>Leche</span></div>
+                <div class="box-g"><b>${Math.round(t.choco)}g</b><span>Choco</span></div>
+                <div class="box-g"><b>${t.descaf.toFixed(1)}g</b><span>Descaf</span></div>`;
+            
+            document.getElementById('tablaBody').innerHTML = tableHtml;
+            document.getElementById('results').style.display = 'block';
+            totalesGlobal = t;
         };
         reader.readAsText(e.target.files[0]);
     }
 
-    async function save() {
-        const cash = document.getElementById('recauda').value;
-        if(!cash) return alert("Pon la recaudación");
-        const body = {
-            cliente: document.getElementById('cliName').innerText,
-            cafe: Math.round(window.lastData.c), leche: Math.round(window.lastData.l),
-            choco: Math.round(window.lastData.ch), descaf: window.lastData.d.toFixed(1),
-            efectivo: cash
+    function abrirScanner() {
+        document.getElementById('modalScanner').style.display = "block";
+        html5QrCode = new Html5QrCode("reader");
+        html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (text) => {
+            qrBolsa = text;
+            document.getElementById('qr-info').innerText = "✅ BOLSA: " + text;
+            cerrarScanner();
+        });
+    }
+
+    function cerrarScanner() {
+        if(html5QrCode) html5QrCode.stop().then(() => { 
+            document.getElementById('modalScanner').style.display = "none"; 
+        });
+    }
+
+    function save() {
+        const cash = document.getElementById('cash').value;
+        if(!cash) return alert("Indica la recaudación real");
+        
+        const data = {
+            cliente: document.getElementById('cliName').innerText.replace("📍 ",""),
+            cafe: Math.round(totalesGlobal.cafe),
+            leche: Math.round(totalesGlobal.leche),
+            choco: Math.round(totalesGlobal.choco),
+            descaf: totalesGlobal.descaf.toFixed(1),
+            efectivo: cash,
+            bolsa: qrBolsa
         };
-        await fetch(URL_SHEET, {method:'POST', body: JSON.stringify(body)});
-        alert("✅ Guardado en Excel");
-        location.reload();
+
+        google.script.run.withSuccessHandler(() => {
+            alert("✅ Guardado en Excel");
+            location.reload();
+        }).doPost({postData: {contents: JSON.stringify(data)}});
     }
 </script>
 </body>
