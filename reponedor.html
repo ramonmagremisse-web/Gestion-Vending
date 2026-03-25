@@ -68,21 +68,20 @@
         <button class="btn-qr" onclick="abrirScanner()">📷 ESCANEAR QR BOLSA RECAUDACIÓN</button>
         <div id="qr-result" style="text-align:center; color:var(--green); font-weight:bold; margin-bottom:15px; font-size:1.1rem;"></div>
         
-        <button class="btn-save" onclick="alert('Reposición Finalizada')">FINALIZAR Y GUARDAR</button>
+        <button class="btn-save" onclick="alert('Datos Guardados Localmente')">FINALIZAR Y GUARDAR</button>
     </div>
 </div>
 
 <script>
-const clientesMap = { "J9190400006F": "Consell Comarcal" };
 const productosNombres = {
-    "1": "Espresso", "2": "Cafe Largo", "3": "Cafe Cortado", "4": "Cafe con leche", "5": "Capuchino", "6": "Mocachino", "7": "Leche Manchada",
-    "8": "Espresso Desc.", "9": "Largo Desc.", "10": "Cortado Desc.", "11": "C. Leche Desc.", "12": "Capu Desc.", "13": "Moca Desc.", "14": "Manchada Desc.",
-    "15": "Leche", "16": "Te al Limon", "17": "Capuchino Avellana", "18": "Capuchino Vainilla", "19": "Irish Coffe", "20": "Chocolate", "21": "Choco Leche",
-    "23": "Chips Ahoy", "24": "Croissant", "25": "Galleta Colacao", "26": "Donettes", "27": "M&M Cacahuete", "28": "Haribo Favoritos", 
-    "70": "Ens. Pasta Atun", "71": "Lasaña Boloñesa", "72": "Macarrones Boloñ.", "73": "Ens. Arroz", "74": "Fideuá 250g", "75": "Albóndigas Tomate", 
-    "76": "Ternera Jardinera", "77": "Ens. Pasta Jamon", "78": "Bifrutas Medit.", "79": "Bifrutas Pacif.", "80": "Bifrutas Tropi.", "81": "Bifrutas Ibiza", 
-    "82": "Cacaolat", "83": "Batido Vainilla", "84": "Agua Bezoya", "85": "Coca-Cola Zero", "86": "Coca-Cola 330ml", 
-    "87": "Fanta Naranja", "88": "Fanta Limón", "89": "Aquarius Naranja", "90": "Aquarius Limón"
+    "001": "Espresso", "002": "Cafe Largo", "003": "Cafe Cortado", "004": "Cafe con leche", "005": "Capuchino", "006": "Mocachino", "007": "Leche Manchada",
+    "008": "Espresso Desc.", "009": "Largo Desc.", "010": "Cortado Desc.", "011": "C. Leche Desc.", "012": "Capu Desc.", "013": "Moca Desc.", "014": "Manchada Desc.",
+    "015": "Leche", "016": "Te al Limon", "017": "Capuchino Avellana", "018": "Capuchino Vainilla", "019": "Irish Coffe", "020": "Chocolate", "021": "Choco Leche",
+    "023": "Chips Ahoy", "024": "Croissant", "025": "Galleta Colacao", "026": "Donettes", "027": "M&M Cacahuete", "028": "Haribo Favoritos", 
+    "070": "Ens. Pasta Atun", "071": "Lasaña Boloñesa", "072": "Macarrones Boloñ.", "073": "Ens. Arroz", "074": "Fideuá 250g", "075": "Albóndigas Tomate", 
+    "076": "Ternera Jardinera", "077": "Ens. Pasta Jamon", "078": "Bifrutas Medit.", "079": "Bifrutas Pacif.", "080": "Bifrutas Tropi.", "081": "Bifrutas Ibiza", 
+    "082": "Cacaolat", "083": "Batido Vainilla", "084": "Agua Bezoya", "085": "Coca-Cola Zero", "086": "Coca-Cola 330ml", 
+    "087": "Fanta Naranja", "088": "Fanta Limón", "089": "Aquarius Naranja", "090": "Aquarius Limón"
 };
 
 let html5QrCode = null;
@@ -95,27 +94,26 @@ document.getElementById('fileInput').addEventListener('change', function(e) {
 
 function procesar(data) {
     const lineas = data.split('\n');
-    let listaVentas = [];
+    let datosArchivo = {}; 
     let totales = { cafe: 0, leche: 0, choco: 0, desc: 0 };
 
+    // 1. Mapear lo que viene en el archivo
     lineas.forEach(linea => {
         const c = linea.split('*');
-        if (c[0] === "CA1") document.getElementById('nombreCliente').innerText = clientesMap[c[1].trim()] || "Cliente: " + c[1];
+        if (c[0] === "CA1") document.getElementById('nombreCliente').innerText = "Cliente: " + c[1].trim();
         if (c[0] === "LA1") {
-            const idRaw = c[2].trim();
-            const idNum = parseInt(idRaw, 10);
+            const id = c[2].trim();
             const uds = parseInt(c[4], 10);
-            
-            // Cálculo de gramos para bebidas calientes
+            datosArchivo[id] = uds;
+
+            // Gramajes
+            const idN = parseInt(id, 10);
             if (uds > 0) {
-                if (idNum >= 1 && idNum <= 7) totales.cafe += (uds * 8);
-                if (idNum >= 8 && idNum <= 14) totales.desc += (uds * 1.4);
-                if ([3,5,10,12,15,21].includes(idNum)) totales.leche += (uds * 5);
-                if (idNum === 20) totales.choco += (uds * 17);
+                if (idN >= 1 && idN <= 7) totales.cafe += (uds * 8);
+                if (idN >= 8 && idN <= 14) totales.desc += (uds * 1.4);
+                if ([3,5,10,12,15,21].includes(idN)) totales.leche += (uds * 5);
+                if (idN === 20) totales.choco += (uds * 17);
             }
-            
-            const nombre = productosNombres[idNum.toString()] || "Producto " + idRaw;
-            listaVentas.push({ id: idRaw, idNum, nombre, uds });
         }
     });
 
@@ -126,19 +124,32 @@ function procesar(data) {
         <div class="prep-item"><span class="prep-label">Descaf.</span><br><span class="prep-val">${totales.desc.toFixed(1)}g</span></div>
     `;
 
-    // ORDEN: 1º Vendidos sólidos, 2º Sin ventas sólidos, 3º Cafetería (1-21) al final.
-    listaVentas.sort((a, b) => {
+    // 2. Generar lista completa basada en el diccionario productosNombres
+    let listaFinal = [];
+    Object.keys(productosNombres).forEach(codigo => {
+        const ventas = datosArchivo[codigo] || 0;
+        listaFinal.push({
+            id: codigo,
+            idNum: parseInt(codigo, 10),
+            nombre: productosNombres[codigo],
+            uds: ventas
+        });
+    });
+
+    // 3. Ordenar: Vendidos > Sólidos > Cafetería
+    listaFinal.sort((a, b) => {
         const aEsCaf = a.idNum <= 21;
         const bEsCaf = b.idNum <= 21;
+        if (a.uds > 0 && b.uds === 0) return -1;
+        if (a.uds === 0 && b.uds > 0) return 1;
         if (aEsCaf && !bEsCaf) return 1;
         if (!aEsCaf && bEsCaf) return -1;
-        if (!aEsCaf && !bEsCaf) return b.uds - a.uds;
         return a.idNum - b.idNum;
     });
 
     const tbody = document.getElementById('tablaVentas');
     tbody.innerHTML = "";
-    listaVentas.forEach(p => {
+    listaFinal.forEach(p => {
         const tr = document.createElement('tr');
         const esCaf = p.idNum <= 21;
         if (esCaf) tr.style.backgroundColor = "#f2f2f2";
