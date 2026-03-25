@@ -6,7 +6,7 @@
     <title>Vending Pro - Consell Comarcal</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
-        :root { --blue: #1a73e8; --red: #d93025; --green: #1e8e3e; --bg: #f4f7f9; }
+        :root { --blue: #1a73e8; --red: #d93025; --orange: #e65100; --bg: #f4f7f9; }
         body { font-family: 'Segoe UI', sans-serif; padding: 10px; background-color: var(--bg); color: #333; margin: 0; }
         .card { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 12px; }
         h1 { color: var(--blue); font-size: 1.1rem; text-align: center; margin: 0; }
@@ -21,6 +21,7 @@
         td { border-bottom: 1px solid #eee; padding: 10px 5px; }
         
         .stock-input { width: 45px; padding: 8px; border: 2px solid var(--blue); border-radius: 6px; text-align: center; font-weight: bold; font-size: 1rem; }
+        .badge-estancado { background: #fff3e0; color: var(--orange); border: 1px solid #ffe0b2; padding: 3px 6px; border-radius: 4px; font-size: 0.6rem; font-weight: bold; display: block; margin-top: 4px; text-align: center; }
         
         #modalScanner { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); z-index:9999; color:white; text-align:center; }
         #reader { width: 100%; max-width: 400px; margin: auto; }
@@ -66,7 +67,7 @@
         </table>
 
         <button class="btn-qr" onclick="abrirScanner()">📷 ESCANEAR QR BOLSA RECAUDACIÓN</button>
-        <div id="qr-result" style="text-align:center; color:var(--green); font-weight:bold; margin-bottom:15px; font-size:1.1rem;"></div>
+        <div id="qr-result" style="text-align:center; color:#1e8e3e; font-weight:bold; margin-bottom:15px; font-size:1.1rem;"></div>
         
         <button class="btn-save" onclick="alert('Datos Guardados Localmente')">FINALIZAR Y GUARDAR</button>
     </div>
@@ -96,17 +97,28 @@ function procesar(data) {
     const lineas = data.split('\n');
     let datosArchivo = {}; 
     let totales = { cafe: 0, leche: 0, choco: 0, desc: 0 };
+    const hoy = new Date();
 
-    // 1. Mapear lo que viene en el archivo
     lineas.forEach(linea => {
         const c = linea.split('*');
         if (c[0] === "CA1") document.getElementById('nombreCliente').innerText = "Cliente: " + c[1].trim();
         if (c[0] === "LA1") {
             const id = c[2].trim();
             const uds = parseInt(c[4], 10);
-            datosArchivo[id] = uds;
+            const fechaDEX = c[5]; // DDMMYY de la última venta
+            
+            let esEstancado = false;
+            if (uds === 0 && fechaDEX && fechaDEX.length === 6) {
+                const d = parseInt(fechaDEX.substring(0,2));
+                const m = parseInt(fechaDEX.substring(2,4)) - 1;
+                const y = 2000 + parseInt(fechaDEX.substring(4,6));
+                const fVenta = new Date(y, m, d);
+                const diff = (hoy - fVenta) / (1000 * 60 * 60 * 24);
+                if (diff > 30) esEstancado = true;
+            }
 
-            // Gramajes
+            datosArchivo[id] = { uds, esEstancado };
+
             const idN = parseInt(id, 10);
             if (uds > 0) {
                 if (idN >= 1 && idN <= 7) totales.cafe += (uds * 8);
@@ -124,19 +136,19 @@ function procesar(data) {
         <div class="prep-item"><span class="prep-label">Descaf.</span><br><span class="prep-val">${totales.desc.toFixed(1)}g</span></div>
     `;
 
-    // 2. Generar lista completa basada en el diccionario productosNombres
     let listaFinal = [];
     Object.keys(productosNombres).forEach(codigo => {
-        const ventas = datosArchivo[codigo] || 0;
+        const info = datosArchivo[codigo] || { uds: 0, esEstancado: false };
         listaFinal.push({
             id: codigo,
             idNum: parseInt(codigo, 10),
             nombre: productosNombres[codigo],
-            uds: ventas
+            uds: info.uds,
+            estancado: info.esEstancado
         });
     });
 
-    // 3. Ordenar: Vendidos > Sólidos > Cafetería
+    // Orden: Vendidos > Sólidos > Cafetería
     listaFinal.sort((a, b) => {
         const aEsCaf = a.idNum <= 21;
         const bEsCaf = b.idNum <= 21;
@@ -153,8 +165,11 @@ function procesar(data) {
         const tr = document.createElement('tr');
         const esCaf = p.idNum <= 21;
         if (esCaf) tr.style.backgroundColor = "#f2f2f2";
+        
+        const badgeEst = p.estancado ? `<span class="badge-estancado">⚠️ ESTANCADO >30D</span>` : "";
+
         tr.innerHTML = `
-            <td><b>${p.nombre}</b><br><small style="color:#999">Pos: ${p.id}</small></td>
+            <td><b>${p.nombre}</b><br><small style="color:#999">Pos: ${p.id}</small>${badgeEst}</td>
             <td style="text-align:center; font-weight:bold; color:${p.uds > 0 ? 'red' : '#999'}">${p.uds}</td>
             <td style="text-align:center">${esCaf ? '-' : `<input type="number" class="stock-input" value="${p.uds}">`}</td>
         `;
