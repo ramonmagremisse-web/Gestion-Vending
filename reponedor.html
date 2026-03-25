@@ -7,25 +7,20 @@
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
         :root { --blue: #1a73e8; --red: #d93025; --green: #1e8e3e; --bg: #f4f7f9; }
-        body { font-family: 'Segoe UI', sans-serif; padding: 10px; background-color: var(--bg); color: #333; margin: 0; }
+        body { font-family: 'Segoe UI', sans-serif; padding: 10px; background-color: var(--bg); margin: 0; }
         .card { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 12px; }
         h1 { color: var(--blue); font-size: 1.1rem; text-align: center; margin: 0; }
-        
         .prep-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
         .prep-item { background: #fff; padding: 8px; border-radius: 8px; border: 1px solid #d1e3fa; }
         .prep-label { font-size: 0.6rem; color: #666; text-transform: uppercase; }
         .prep-val { font-size: 1rem; font-weight: bold; color: var(--blue); }
-
         table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
         th { background: #f8f9fa; color: #666; font-size: 0.65rem; padding: 8px; text-align: left; }
         td { border-bottom: 1px solid #eee; padding: 10px 5px; }
-        
         .stock-input { width: 45px; padding: 8px; border: 2px solid var(--blue); border-radius: 6px; text-align: center; font-weight: bold; font-size: 1rem; }
-        
         #modalScanner { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); z-index:9999; color:white; text-align:center; }
         #reader { width: 100%; max-width: 400px; margin: auto; }
-        
-        .btn-save { width:100%; padding:18px; background: var(--blue); color:white; border:none; border-radius:12px; font-weight:bold; font-size: 1.1rem; margin-top:10px; }
+        .btn-save { width:100%; padding:18px; background: var(--blue); color:white; border:none; border-radius:12px; font-weight:bold; font-size: 1.1rem; }
         .btn-qr { width:100%; padding:15px; background: #333; color:white; border:none; border-radius:12px; margin: 15px 0; font-weight:bold; }
         .btn-cancel { margin: 20px; padding: 10px 20px; background: #cc0000; color: white; border: none; border-radius: 5px; }
     </style>
@@ -78,9 +73,11 @@ const productosNombres = {
     "1": "Espresso", "2": "Cafe Largo", "3": "Cafe Cortado", "4": "Cafe con leche", "5": "Capuchino", "6": "Mocachino", "7": "Leche Manchada",
     "8": "Espresso Desc.", "9": "Largo Desc.", "10": "Cortado Desc.", "11": "C. Leche Desc.", "12": "Capu Desc.", "13": "Moca Desc.", "14": "Manchada Desc.",
     "15": "Leche", "16": "Te al Limon", "17": "Capuchino Avellana", "18": "Capuchino Vainilla", "19": "Irish Coffe", "20": "Chocolate", "21": "Choco Leche",
-    "23": "Chips Ahoy", "24": "Croissant", "25": "Galleta Colacao", "26": "Donettes", "70": "Ens. Pasta Atun", "71": "Lasaña Boloñesa", "72": "Macarrones Boloñ.",
-    "73": "Ens. Arroz", "74": "Fideuá 250g", "75": "Albóndigas Tomate", "76": "Ternera Jardinera", "77": "Ens. Pasta Jamon", "78": "Bifrutas Medit.",
-    "79": "Bifrutas Pacif.", "80": "Bifrutas Tropi.", "81": "Bifrutas Ibiza", "82": "Cacaolat", "84": "Agua Bezoya", "85": "Coca-Cola Zero", "86": "Coca-Cola 330ml"
+    "23": "Chips Ahoy", "24": "Croissant", "25": "Galleta Colacao", "26": "Donettes", "27": "M&M Cacahuete", "28": "Haribo Favoritos", 
+    "70": "Ens. Pasta Atun", "71": "Lasaña Boloñesa", "72": "Macarrones Boloñ.", "73": "Ens. Arroz", "74": "Fideuá 250g", "75": "Albóndigas Tomate", 
+    "76": "Ternera Jardinera", "77": "Ens. Pasta Jamon", "78": "Bifrutas Medit.", "79": "Bifrutas Pacif.", "80": "Bifrutas Tropi.", "81": "Bifrutas Ibiza", 
+    "82": "Cacaolat", "83": "Batido Vainilla", "84": "Agua Bezoya", "85": "Coca-Cola Zero", "86": "Coca-Cola 330ml", 
+    "87": "Fanta Naranja", "88": "Fanta Limón", "89": "Aquarius Naranja", "90": "Aquarius Limón"
 };
 
 let html5QrCode = null;
@@ -98,11 +95,11 @@ function procesar(data) {
 
     lineas.forEach(linea => {
         const c = linea.split('*');
-        if (c[0] === "CA1") document.getElementById('nombreCliente').innerText = clientesMap[c[1]] || "Cliente: " + c[1];
+        if (c[0] === "CA1") document.getElementById('nombreCliente').innerText = clientesMap[c[1].trim()] || "Cliente: " + c[1];
         if (c[0] === "LA1") {
-            const idRaw = c[2];
-            const idNum = parseInt(idRaw);
-            const uds = parseInt(c[4]);
+            const idRaw = c[2].trim();
+            const idNum = parseInt(idRaw, 10); // Quita ceros: "073" -> 73
+            const uds = parseInt(c[4], 10);
             
             if (uds > 0) {
                 if (idNum >= 1 && idNum <= 7) totales.cafe += (uds * 8);
@@ -120,16 +117,17 @@ function procesar(data) {
         <div class="prep-item"><span class="prep-label">Café Grano</span><br><span class="prep-val">${totales.cafe}g</span></div>
         <div class="prep-item"><span class="prep-label">Leche Polvo</span><br><span class="prep-val">${totales.leche}g</span></div>
         <div class="prep-item"><span class="prep-label">Chocolate</span><br><span class="prep-val">${totales.choco}g</span></div>
-        <div class="prep-item"><span class="prep-label">Descafeinado</span><br><span class="prep-val">${totales.desc.toFixed(1)}g</span></div>
+        <div class="prep-item"><span class="prep-label">Descaf.</span><br><span class="prep-val">${totales.desc.toFixed(1)}g</span></div>
     `;
 
-    // ORDEN: Sólidos arriba (vendido primero), Cafetería (1-21) SIEMPRE al final
+    // ORDENAR: 1º Vendidos (uds > 0), 2º Sólidos (id > 21), 3º Cafetería (id <= 21) al final
     listaVentas.sort((a, b) => {
         const aEsCaf = a.idNum <= 21;
         const bEsCaf = b.idNum <= 21;
+        if (a.uds > 0 && b.uds === 0) return -1;
+        if (a.uds === 0 && b.uds > 0) return 1;
         if (aEsCaf && !bEsCaf) return 1;
         if (!aEsCaf && bEsCaf) return -1;
-        if (!aEsCaf && !bEsCaf) return b.uds - a.uds;
         return a.idNum - b.idNum;
     });
 
@@ -139,7 +137,6 @@ function procesar(data) {
         const tr = document.createElement('tr');
         const esCaf = p.idNum <= 21;
         if (esCaf) tr.style.backgroundColor = "#f2f2f2";
-        
         tr.innerHTML = `
             <td><b>${p.nombre}</b><br><small style="color:#999">Pos: ${p.id}</small></td>
             <td style="text-align:center; font-weight:bold; color:${p.uds > 0 ? 'red' : '#999'}">${p.uds}</td>
