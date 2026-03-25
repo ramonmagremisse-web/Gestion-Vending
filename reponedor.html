@@ -6,53 +6,51 @@
     <title>Vending Pro - Consell Comarcal</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
-        :root { --blue: #1a73e8; --red: #d93025; --green: #1e8e3e; --bg: #f4f7f9; --dark: #202124; }
-        body { font-family: 'Segoe UI', sans-serif; padding: 10px; background-color: var(--bg); color: #333; margin: 0; user-select: none; -webkit-tap-highlight-color: transparent; }
+        :root { --blue: #1a73e8; --red: #d93025; --green: #1e8e3e; --bg: #f4f7f9; }
+        body { font-family: 'Segoe UI', sans-serif; padding: 10px; background-color: var(--bg); color: #333; margin: 0; }
         .card { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 12px; }
         h1 { color: var(--blue); font-size: 1.1rem; text-align: center; margin: 0; }
         
         .prep-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
         .prep-item { background: #fff; padding: 8px; border-radius: 8px; border: 1px solid #d1e3fa; }
         .prep-label { font-size: 0.6rem; color: #666; text-transform: uppercase; }
-        .prep-val { font-size: 1rem; font-weight: bold; color: var(--blue); display: block; }
+        .prep-val { font-size: 1rem; font-weight: bold; color: var(--blue); }
 
         table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
-        th { background: #f8f9fa; color: #666; font-size: 0.65rem; padding: 8px; text-align: left; text-transform: uppercase; }
-        td { border-bottom: 1px solid #eee; padding: 10px 5px; vertical-align: middle; }
+        th { background: #f8f9fa; color: #666; font-size: 0.65rem; padding: 8px; text-align: left; }
+        td { border-bottom: 1px solid #eee; padding: 10px 5px; }
         
-        .stock-input { width: 45px; padding: 8px; border: 2px solid var(--blue); border-radius: 6px; text-align: center; font-weight: bold; font-size: 1rem; background: #e3f2fd; }
-        .status-badge { padding: 3px 6px; border-radius: 4px; font-size: 0.6rem; font-weight: bold; }
-        .movimiento { background: #e8f5e9; color: var(--green); }
-
-        /* Modal Escáner */
+        .stock-input { width: 45px; padding: 8px; border: 2px solid var(--blue); border-radius: 6px; text-align: center; font-weight: bold; font-size: 1rem; }
+        
         #modalScanner { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); z-index:9999; color:white; text-align:center; }
         #reader { width: 100%; max-width: 400px; margin: auto; }
         
-        .btn-save { width:100%; padding:15px; background: var(--blue); color:white; border:none; border-radius:10px; font-weight:bold; font-size: 1rem; margin-top:10px; }
-        .btn-qr { width:100%; padding:12px; background: var(--dark); color:white; border:none; border-radius:10px; margin: 10px 0; font-weight:bold; }
+        .btn-save { width:100%; padding:18px; background: var(--blue); color:white; border:none; border-radius:12px; font-weight:bold; font-size: 1.1rem; margin-top:10px; }
+        .btn-qr { width:100%; padding:15px; background: #333; color:white; border:none; border-radius:12px; margin: 15px 0; font-weight:bold; }
         .btn-cancel { margin: 20px; padding: 10px 20px; background: #cc0000; color: white; border: none; border-radius: 5px; }
     </style>
 </head>
 <body>
 
 <div id="modalScanner">
-    <h3 id="scanner-title" style="margin-top:20px;">📷 ESCANEANDO</h3>
+    <h3 style="margin-top:20px;">📷 ESCANEANDO BOLSA</h3>
     <div id="reader"></div>
     <button class="btn-cancel" onclick="cerrarScanner()">CERRAR CÁMARA</button>
 </div>
 
 <div class="card">
-    <h1>📦 Gestión de Reposición</h1>
+    <h1>📦 Reposición Consell Comarcal</h1>
     <input type="file" id="fileInput" accept=".txt" style="margin-top:10px; width:100%;">
 </div>
 
 <div id="resultado" style="display:none;">
-    <div class="card" style="background: #e8f0fe;">
+    <div class="card" style="background: #e8f0fe; border: 1px solid var(--blue);">
+        <h3 style="font-size:0.8rem; margin:0 0 10px 0;">🚚 CARGA DE TOLVAS</h3>
         <div id="informeGramajes" class="prep-grid"></div>
     </div>
 
     <div class="card">
-        <span id="nombreCliente" style="color:var(--blue); font-weight:bold;">---</span>
+        <span id="nombreCliente" style="color:var(--blue); font-weight:bold; font-size:1.1rem;">---</span>
     </div>
 
     <div class="card">
@@ -60,25 +58,29 @@
             <thead>
                 <tr>
                     <th>Producto</th>
-                    <th>Vendido</th>
-                    <th>Cargar</th>
+                    <th style="text-align:center;">Vendido</th>
+                    <th style="text-align:center;">Cargar</th>
                 </tr>
             </thead>
             <tbody id="tablaVentas"></tbody>
         </table>
 
-        <button class="btn-qr" onclick="abrirScanner('QR_BOLSA')">📷 ESCANEAR QR BOLSA</button>
-        <div id="qr-result" style="text-align:center; color:var(--green); font-weight:bold; margin-bottom:10px;"></div>
-        <button class="btn-save" onclick="alert('Datos Guardados')">FINALIZAR REPOSICIÓN</button>
+        <button class="btn-qr" onclick="abrirScanner()">📷 ESCANEAR QR BOLSA RECAUDACIÓN</button>
+        <div id="qr-result" style="text-align:center; color:var(--green); font-weight:bold; margin-bottom:15px; font-size:1.1rem;"></div>
+        
+        <button class="btn-save" onclick="alert('Reposición Finalizada')">FINALIZAR Y GUARDAR</button>
     </div>
 </div>
 
 <script>
 const clientesMap = { "J9190400006F": "Consell Comarcal" };
 const productosNombres = {
-    "1": "Ristreto/Espresso", "2": "Cafe Largo", "3": "Cafe Cortado", "4": "Cafe con leche", "5": "Capuchino", "8": "Espresso (Desc.)", "15": "Leche", "16": "Te al Limon", "20": "Chocolate",
-    "70": "Ens. Pasta Atun", "71": "Lasaña Boloñesa", "72": "Macarrones Boloñ.", "73": "Ens. Arroz", "74": "Fideuá 250g", "75": "Albóndigas Tomate", "76": "Ternera Jardinera", "77": "Ens. Pasta Jamon", 
-    "78": "Bifrutas Medit.", "79": "Bifrutas Pacif.", "80": "Bifrutas Tropi.", "81": "Bifrutas Ibiza", "82": "Cacaolat 200ml", "84": "Agua Bezoya", "85": "Coca-Cola Zero", "86": "Coca-Cola 330ml"
+    "1": "Espresso", "2": "Cafe Largo", "3": "Cafe Cortado", "4": "Cafe con leche", "5": "Capuchino", "6": "Mocachino", "7": "Leche Manchada",
+    "8": "Espresso Desc.", "9": "Largo Desc.", "10": "Cortado Desc.", "11": "C. Leche Desc.", "12": "Capu Desc.", "13": "Moca Desc.", "14": "Manchada Desc.",
+    "15": "Leche", "16": "Te al Limon", "17": "Capuchino Avellana", "18": "Capuchino Vainilla", "19": "Irish Coffe", "20": "Chocolate", "21": "Choco Leche",
+    "23": "Chips Ahoy", "24": "Croissant", "25": "Galleta Colacao", "26": "Donettes", "70": "Ens. Pasta Atun", "71": "Lasaña Boloñesa", "72": "Macarrones Boloñ.",
+    "73": "Ens. Arroz", "74": "Fideuá 250g", "75": "Albóndigas Tomate", "76": "Ternera Jardinera", "77": "Ens. Pasta Jamon", "78": "Bifrutas Medit.",
+    "79": "Bifrutas Pacif.", "80": "Bifrutas Tropi.", "81": "Bifrutas Ibiza", "82": "Cacaolat", "84": "Agua Bezoya", "85": "Coca-Cola Zero", "86": "Coca-Cola 330ml"
 };
 
 let html5QrCode = null;
@@ -98,67 +100,63 @@ function procesar(data) {
         const c = linea.split('*');
         if (c[0] === "CA1") document.getElementById('nombreCliente').innerText = clientesMap[c[1]] || "Cliente: " + c[1];
         if (c[0] === "LA1") {
-            const idRaw = c[2]; // Ej: "073"
-            const idNum = parseInt(idRaw); // Ej: 73
+            const idRaw = c[2];
+            const idNum = parseInt(idRaw);
             const uds = parseInt(c[4]);
             
-            // Lógica Gramajes (1-21)
             if (uds > 0) {
                 if (idNum >= 1 && idNum <= 7) totales.cafe += (uds * 8);
                 if (idNum >= 8 && idNum <= 14) totales.desc += (uds * 1.4);
-                if (["003","005","010","012","015","021"].includes(idRaw)) totales.leche += (uds * 5);
-                if (idRaw === "020") totales.choco += (uds * 17);
+                if ([3,5,10,12,15,21].includes(idNum)) totales.leche += (uds * 5);
+                if (idNum === 20) totales.choco += (uds * 17);
             }
             
-            // Buscar nombre usando el número limpio
             const nombre = productosNombres[idNum.toString()] || "Producto " + idRaw;
             listaVentas.push({ id: idRaw, idNum, nombre, uds });
         }
     });
 
     document.getElementById('informeGramajes').innerHTML = `
-        <div class="prep-item"><span class="prep-label">Café Grano</span><span class="prep-val">${totales.cafe}g</span></div>
-        <div class="prep-item"><span class="prep-label">Leche Polvo</span><span class="prep-val">${totales.leche}g</span></div>
-        <div class="prep-item"><span class="prep-label">Chocolate</span><span class="prep-val">${totales.choco}g</span></div>
-        <div class="prep-item"><span class="prep-label">Descaf.</span><span class="prep-val">${totales.desc.toFixed(1)}g</span></div>
+        <div class="prep-item"><span class="prep-label">Café Grano</span><br><span class="prep-val">${totales.cafe}g</span></div>
+        <div class="prep-item"><span class="prep-label">Leche Polvo</span><br><span class="prep-val">${totales.leche}g</span></div>
+        <div class="prep-item"><span class="prep-label">Chocolate</span><br><span class="prep-val">${totales.choco}g</span></div>
+        <div class="prep-item"><span class="prep-label">Descafeinado</span><br><span class="prep-val">${totales.desc.toFixed(1)}g</span></div>
     `;
 
-    renderTabla(listaVentas);
+    // ORDEN: Sólidos arriba (vendido primero), Cafetería (1-21) SIEMPRE al final
+    listaVentas.sort((a, b) => {
+        const aEsCaf = a.idNum <= 21;
+        const bEsCaf = b.idNum <= 21;
+        if (aEsCaf && !bEsCaf) return 1;
+        if (!aEsCaf && bEsCaf) return -1;
+        if (!aEsCaf && !bEsCaf) return b.uds - a.uds;
+        return a.idNum - b.idNum;
+    });
+
+    const tbody = document.getElementById('tablaVentas');
+    tbody.innerHTML = "";
+    listaVentas.forEach(p => {
+        const tr = document.createElement('tr');
+        const esCaf = p.idNum <= 21;
+        if (esCaf) tr.style.backgroundColor = "#f2f2f2";
+        
+        tr.innerHTML = `
+            <td><b>${p.nombre}</b><br><small style="color:#999">Pos: ${p.id}</small></td>
+            <td style="text-align:center; font-weight:bold; color:${p.uds > 0 ? 'red' : '#999'}">${p.uds}</td>
+            <td style="text-align:center">${esCaf ? '-' : `<input type="number" class="stock-input" value="${p.uds}">`}</td>
+        `;
+        tbody.appendChild(tr);
+    });
     document.getElementById('resultado').style.display = "block";
 }
 
-function renderTabla(lista) {
-    const tbody = document.getElementById('tablaVentas');
-    tbody.innerHTML = "";
-    lista.sort((a,b) => b.uds - a.uds).forEach(p => {
-        const esCafeteria = p.idNum <= 21;
-        const tr = document.createElement('tr');
-        tr.className = "producto-fila";
-        tr.innerHTML = `
-            <td id="row-${p.id}"><b>${p.nombre}</b><br><small style="color:#999">Pos: ${p.id}</small></td>
-            <td style="text-align:center; font-weight:bold; color:${p.uds > 0 ? 'red' : '#999'}">${p.uds}</td>
-            <td style="text-align:center">${esCafeteria ? '-' : `<input type="number" class="stock-input" value="${p.uds}">`}</td>
-        `;
-        let timer;
-        tr.onpointerdown = () => timer = setTimeout(() => abrirScanner('CAMBIO', p.id), 2500);
-        tr.onpointerup = () => clearTimeout(timer);
-        tbody.appendChild(tr);
-    });
-}
-
-function abrirScanner(modo, id = null) {
+function abrirScanner() {
     document.getElementById('modalScanner').style.display = "block";
     html5QrCode = new Html5QrCode("reader");
-    const config = { fps: 10, qrbox: { width: 250, height: 250 } };
-    
-    html5QrCode.start({ facingMode: "environment" }, config, (text) => {
-        if (modo === 'QR_BOLSA') {
-            document.getElementById('qr-result').innerText = "✅ Bolsa: " + text;
-        } else {
-            document.getElementById(`row-${id}`).innerHTML = `<b>NUEVO: ${text}</b><br><small style="color:orange;">Sustituido</small>`;
-        }
+    html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (text) => {
+        document.getElementById('qr-result').innerText = "✅ BOLSA: " + text;
         cerrarScanner();
-    }).catch(err => { console.error(err); });
+    }).catch(err => console.error(err));
 }
 
 function cerrarScanner() {
@@ -166,9 +164,7 @@ function cerrarScanner() {
         html5QrCode.stop().then(() => {
             document.getElementById('modalScanner').style.display = "none";
             html5QrCode = null;
-        }).catch(() => {
-            document.getElementById('modalScanner').style.display = "none";
-        });
+        }).catch(() => document.getElementById('modalScanner').style.display = "none");
     } else {
         document.getElementById('modalScanner').style.display = "none";
     }
